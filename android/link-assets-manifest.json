@@ -1,0 +1,169 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "src/Assets/fonts/Montserrat-Black.ttf",
+      "sha1": "ea4feb16f3d8cb3f1cbc8e3a7af7388cc01ce32e"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-BlackItalic.ttf",
+      "sha1": "d439bd54958ff80dc23d4d3edc5a5115a6e827a8"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-Bold.ttf",
+      "sha1": "c7d907722af4fb845ab97d515bb414f29651f000"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-BoldItalic.ttf",
+      "sha1": "eee7f440754eb6ecbfcc461e9af2536ed0286a7f"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-ExtraBold.ttf",
+      "sha1": "4a2cbee7a7ab79ab2cf0c120c962384dc240b237"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-ExtraBoldItalic.ttf",
+      "sha1": "f6ab908d898677add7044582e5a3e961317fe75f"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-ExtraLight.ttf",
+      "sha1": "c198620afdbc8ebbb68ea2b71ffab9188037d602"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-ExtraLightItalic.ttf",
+      "sha1": "a2fc69ceaf90f83fc899ee75190b3ef954e5e073"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-Italic-VariableFont_wght.ttf",
+      "sha1": "7ba6660400f0cb201da6facd9cddb768a182c968"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-Italic.ttf",
+      "sha1": "763e9c22a750ff1241aacf1e0e4d3050827b9783"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-Light.ttf",
+      "sha1": "1db8878a7654208b6c55402f6ff717e03a312e1e"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-LightItalic.ttf",
+      "sha1": "91fcb7d72360f81be21a4b1fda01959d16179735"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-Medium.ttf",
+      "sha1": "4656e40419da86a5fec473ea8e7fc0efef183f05"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-MediumItalic.ttf",
+      "sha1": "95bcdfd1606d7b1970a12399d23ddf8fbeeb490e"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-Regular.ttf",
+      "sha1": "1c8119b38eef1914a4fbd9f6cfdedf198445ab97"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-SemiBold.ttf",
+      "sha1": "d491c9d0af61faef59ca807737b560170f547f5b"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-SemiBoldItalic.ttf",
+      "sha1": "d5b90fca448ac51e9410d7c8de07eb64be27ed25"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-Thin.ttf",
+      "sha1": "447838642258b95e8a61df1770189f962cc0741b"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-ThinItalic.ttf",
+      "sha1": "04f69417392da5f6f831fd89e6ff5698323fdecb"
+    },
+    {
+      "path": "src/Assets/fonts/Montserrat-VariableFont_wght.ttf",
+      "sha1": "e3f5228e62455228b55694f1cb5ac40f9682a86b"
+    },
+    {
+      "path": "src/Assets/fonts/OFL.txt",
+      "sha1": "7a155cb46c25149b5ad3cb4aedf87edcced2bba8"
+    },
+    {
+      "path": "src/Assets/fonts/README.txt",
+      "sha1": "c370b9b0f12d0f02921c815d7caaa2f46df3bfa2"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/AntDesign.ttf",
+      "sha1": "4e77868439280fb434d4697c7b911271406c81f3"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/Entypo.ttf",
+      "sha1": "12b5670eb178138f77285d5f2c246d3cc5fa67d6"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/EvilIcons.ttf",
+      "sha1": "91d377ea3cf47490b256c2ed081704a7dabdae0c"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/Feather.ttf",
+      "sha1": "e6604258b1ced5efd51360875d782fca65381d47"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/FontAwesome.ttf",
+      "sha1": "13b1eab65a983c7a73bc7997c479d66943f7c6cb"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/FontAwesome5_Brands.ttf",
+      "sha1": "3fa2d67cef22da5c3f3eb5730c6afbd6fecf0372"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/FontAwesome5_Regular.ttf",
+      "sha1": "7d849a3981a716e2ba4a84634bc57d0b8054a6a3"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/FontAwesome5_Solid.ttf",
+      "sha1": "c1b9fae262f42868c075ac865a8ab34920e20a2c"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/FontAwesome6_Brands.ttf",
+      "sha1": "7ce89c71d5a51ac65b159c71422783dd86529c66"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/FontAwesome6_Regular.ttf",
+      "sha1": "775e2ecfc18d22b177274453d4c014ca6be63208"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/FontAwesome6_Solid.ttf",
+      "sha1": "2b8e11389d98122399667cf64941eb58497dc128"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/Fontisto.ttf",
+      "sha1": "c090a3ec96a3f1bb9b615c2f3f204ce0dcdcdbc3"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/Foundation.ttf",
+      "sha1": "4b2bce6c792493a4a5716b6fec2dbefe89492c3f"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/Ionicons.ttf",
+      "sha1": "86e07c3d974eb09099e6e5a9b3b8310303cf0feb"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf",
+      "sha1": "4c2a838b00dbb5e8bb1b368fce0de534e8eb241c"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/MaterialIcons.ttf",
+      "sha1": "7e02c3f005532ff4d24148567c84089756a7848a"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/Octicons.ttf",
+      "sha1": "56acefc0731f35ee23b195b1c8cb5fa94a0db97b"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/SimpleLineIcons.ttf",
+      "sha1": "9ffb81a5a11112e292f2cc323e98486bad597599"
+    },
+    {
+      "path": "node_modules/react-native-vector-icons/Fonts/Zocial.ttf",
+      "sha1": "6a48a962b06cc3acbdfd61df0d9a34744eea5e8d"
+    }
+  ]
+}
