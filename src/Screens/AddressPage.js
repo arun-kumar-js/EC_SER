@@ -29,9 +29,29 @@ const ChooseAddressScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
-  const [editingAddressId, setEditingAddressId] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editAddressData, setEditAddressData] = useState(null);
+
+  // Handle route parameters for edit mode
+  useEffect(() => {
+    console.log('=== ADDRESS PAGE ROUTE PARAMETERS ===');
+    console.log('Route:', route);
+    console.log('Route Params:', route.params);
+    console.log('All Route Keys:', Object.keys(route.params || {}));
+    
+    if (route.params?.editAddress) {
+      setIsEditMode(true);
+      setEditAddressData(route.params.editAddress);
+      console.log('Edit mode activated with data:', route.params.editAddress);
+      console.log('Edit Address ID:', route.params.editAddress.id);
+      console.log('Edit Address Name:', route.params.editAddress.name);
+      console.log('Edit Address Mobile:', route.params.editAddress.mobile);
+      console.log('Edit Address Email:', route.params.editAddress.email);
+      console.log('Edit Address Full Data:', JSON.stringify(route.params.editAddress, null, 2));
+    } else {
+      console.log('No edit address data found in route params');
+    }
+  }, [route.params]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -126,18 +146,11 @@ const ChooseAddressScreen = ({ navigation }) => {
 
             <View style={styles.addressActions}>
               <TouchableOpacity
-                style={[styles.actionButton, editingAddressId === item.id && styles.actionButtonDisabled]}
+                style={styles.actionButton}
                 onPress={() => handleEditAddress(item)}
-                disabled={editingAddressId === item.id}
               >
-                {editingAddressId === item.id ? (
-                  <ActivityIndicator size="small" color="#EF3340" />
-                ) : (
-                  <Icon name="pencil" size={16} color="#EF3340" />
-                )}
-                <Text style={styles.actionButtonText}>
-                  {editingAddressId === item.id ? 'Updating...' : 'Edit'}
-                </Text>
+                <Icon name="pencil" size={16} color="#EF3340" />
+                <Text style={styles.actionButtonText}>Edit</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -154,86 +167,29 @@ const ChooseAddressScreen = ({ navigation }) => {
     );
   };
 
-  const handleEditAddress = async (addressData) => {
-    try {
-      setEditingAddressId(addressData.id);
-      console.log('=== EDITING ADDRESS ===');
-      console.log('Address Data:', addressData);
-      console.log('User ID:', user?.user_id || user?.id);
-
-      // Prepare the address data for the API call based on the API screenshot
-      const editData = {
-        id: addressData.id,
-        user_id: user?.user_id || user?.id,
-        name: addressData.name || '',
-        mobile: addressData.mobile || '',
-        email: addressData.email || '',
-        address: addressData.address || '',
-        street: addressData.street || addressData.address || '', // Use address as street if street not available
-        landmark: addressData.landmark || '',
-        city_id: addressData.city_id || addressData.city_id || '',
-        state_id: addressData.state_id || addressData.state_id || '',
-        area_id: addressData.area_id || addressData.area_id || '',
-        pincode: addressData.pincode || '',
-        latitude: addressData.latitude || '13.0144823', // Default latitude if not available
-        longitude: addressData.longitude || '80.2227202', // Default longitude if not available
-        gst_no: addressData.gst_no || '',
-      };
-
-      console.log('Prepared Edit Data for API:', editData);
-      console.log('API Parameters:');
-      console.log('- accesskey: 90336');
-      console.log('- type: update_address');
-      console.log('- id:', editData.id);
-      console.log('- user_id:', editData.user_id);
-      console.log('- name:', editData.name);
-      console.log('- mobile:', editData.mobile);
-      console.log('- email:', editData.email);
-      console.log('- address:', editData.address);
-      console.log('- street:', editData.street);
-      console.log('- landmark:', editData.landmark);
-      console.log('- city_id:', editData.city_id);
-      console.log('- state_id:', editData.state_id);
-      console.log('- area_id:', editData.area_id);
-      console.log('- pincode:', editData.pincode);
-      console.log('- latitude:', editData.latitude);
-      console.log('- longitude:', editData.longitude);
-      console.log('- gst_no:', editData.gst_no);
-
-      const result = await editAddress(editData);
-      
-      if (result.success) {
-        console.log('✅ Address updated successfully');
-        Toast.show({
-          type: 'success',
-          text1: 'Address Updated',
-          text2: 'Your address has been updated successfully',
-          position: 'top',
-        });
-        
-        // Refresh the addresses list
-        const updatedAddresses = await fetchUserAddresses(user?.user_id || user?.id);
-        setAddresses(updatedAddresses);
-      } else {
-        console.error('❌ Failed to update address:', result.message);
-        Toast.show({
-          type: 'error',
-          text1: 'Update Failed',
-          text2: result.message || 'Failed to update address',
-          position: 'top',
-        });
-      }
-    } catch (error) {
-      console.error('Error editing address:', error);
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to update address',
-        position: 'top',
-      });
-    } finally {
-      setEditingAddressId(null);
-    }
+  const handleEditAddress = (addressData) => {
+    console.log('=== NAVIGATING TO EDIT ADDRESS ===');
+    console.log('Full Address Data Object:', addressData);
+    console.log('Address ID:', addressData.id);
+    console.log('Address Name:', addressData.name);
+    console.log('Address Mobile:', addressData.mobile);
+    console.log('Address Email:', addressData.email);
+    console.log('Address Street:', addressData.street);
+    console.log('Address Landmark:', addressData.landmark);
+    console.log('Address Pincode:', addressData.pincode);
+    console.log('Address Latitude:', addressData.latitude);
+    console.log('Address Longitude:', addressData.longitude);
+    console.log('Address State:', addressData.state);
+    console.log('Address City:', addressData.city);
+    console.log('Address Area:', addressData.area);
+    console.log('Address User ID:', addressData.user_id);
+    console.log('JSON Stringified:', JSON.stringify(addressData, null, 2));
+    
+    // Navigate to AddAddress page with the address data for editing
+    navigation.navigate('AddAddress', {
+      addressData: addressData,
+      editMode: true
+    });
   };
 
   const handleDeleteAddress = async addressId => {
@@ -274,13 +230,23 @@ const ChooseAddressScreen = ({ navigation }) => {
       addr => addr.id === selectedAddressId,
     );
     if (selectedAddress) {
-      // Navigate back to Home with selected address details
-      navigation.navigate('MainApp', {
+      console.log('=== NAVIGATING TO CHECKOUT ===');
+      console.log('Selected Address:', selectedAddress);
+      
+      // Navigate to CheckOut page with selected address details
+      navigation.navigate('CheckOut', {
         selectedAddress: {
+          id: selectedAddress.id,
           name: selectedAddress.name,
           address: selectedAddress.address,
           mobile: selectedAddress.mobile,
-          email: selectedAddress.email || 'user@example.com', // fallback if email not available
+          email: selectedAddress.email || 'user@example.com',
+          pincode: selectedAddress.pincode,
+          city: selectedAddress.city,
+          state: selectedAddress.state,
+          landmark: selectedAddress.landmark,
+          latitude: selectedAddress.latitude,
+          longitude: selectedAddress.longitude,
         },
       });
     } else {
@@ -305,7 +271,9 @@ const ChooseAddressScreen = ({ navigation }) => {
           />
         </TouchableOpacity>
         
-        <Text style={styles.headerTitle}>Choose Address</Text>
+        <Text style={styles.headerTitle}>
+          {isEditMode ? 'Edit Address' : 'Choose Address'}
+        </Text>
         
         <View style={styles.headerRight} />
       </View>

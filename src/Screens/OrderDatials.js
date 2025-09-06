@@ -22,6 +22,21 @@ const OrderDatials = ({ route, navigation }) => {
     }
   }, [paramsOrderData]);
 
+  // Function to check if order cannot be cancelled
+  const isOrderNonCancellable = (status) => {
+    const nonCancellableStatuses = [
+      'shipped',
+      'out_for_delivery', 
+      'delivered',
+      'cancelled',
+      'completed',
+      'in_transit',
+      'confirmed_and_shipped'
+    ];
+    
+    return nonCancellableStatuses.includes(status?.toLowerCase());
+  };
+
   // Cancel Order API Function
   const cancelOrder = async () => {
     try {
@@ -150,7 +165,7 @@ const OrderDatials = ({ route, navigation }) => {
                   <Text style={styles.price}>₹{product.price || '0'}</Text>
                   <Text style={styles.measurement}>{product.measurement || '1'} {product.unit || 'unit'}</Text>
                 </View>
-                {orderData.active_status !== 'Cancelled' && (
+                {!isOrderNonCancellable(orderData.active_status) && (
                   <TouchableOpacity style={styles.returnButton}>
                     <Text style={styles.returnButtonText}>Cancel item</Text>
                   </TouchableOpacity>
@@ -169,7 +184,7 @@ const OrderDatials = ({ route, navigation }) => {
                 <Text style={styles.price}>₹{orderData.price || '0'}</Text>
                 <Text style={styles.measurement}>{orderData.measurement || '1'} {orderData.unit || 'unit'}</Text>
               </View>
-              {orderData.active_status !== 'Cancelled' && (
+              {!isOrderNonCancellable(orderData.active_status) && (
                 <TouchableOpacity style={styles.returnButton}>
                   <Text style={styles.returnButtonText}>Cancel item</Text>
                 </TouchableOpacity>
@@ -303,33 +318,36 @@ const OrderDatials = ({ route, navigation }) => {
             <Text style={styles.reviewOrderButtonText}>REVIEW</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity 
-            style={[styles.cancelOrderButton, isCancelling && styles.cancelOrderButtonDisabled]}
-            onPress={() => {
-              Alert.alert(
-                'Cancel Order',
-                'Are you sure you want to cancel this order?',
-                [
-                  {
-                    text: 'No',
-                    style: 'cancel'
-                  },
-                  {
-                    text: 'Yes, Cancel',
-                    style: 'destructive',
-                    onPress: cancelOrder
-                  }
-                ]
-              );
-            }}
-            disabled={isCancelling || orderData.active_status === 'Cancelled'}
-          >
-            <Text style={styles.cancelOrderButtonText}>
-              {isCancelling ? 'CANCELLING...' : 
-               orderData.active_status === 'Cancelled' ? 'ORDER CANCELLED' : 
-               'CANCEL ORDER?'}
-            </Text>
-          </TouchableOpacity>
+          // Only show cancel button if order can be cancelled
+          !isOrderNonCancellable(orderData.active_status) && (
+            <TouchableOpacity 
+              style={[styles.cancelOrderButton, isCancelling && styles.cancelOrderButtonDisabled]}
+              onPress={() => {
+                Alert.alert(
+                  'Cancel Order',
+                  'Are you sure you want to cancel this order?',
+                  [
+                    {
+                      text: 'No',
+                      style: 'cancel'
+                    },
+                    {
+                      text: 'Yes, Cancel',
+                      style: 'destructive',
+                      onPress: cancelOrder
+                    }
+                  ]
+                );
+              }}
+              disabled={isCancelling || orderData.active_status === 'Cancelled'}
+            >
+              <Text style={styles.cancelOrderButtonText}>
+                {isCancelling ? 'CANCELLING...' : 
+                 orderData.active_status === 'Cancelled' ? 'ORDER CANCELLED' : 
+                 'CANCEL ORDER?'}
+              </Text>
+            </TouchableOpacity>
+          )
         )}
       </View>
     </SafeAreaView>

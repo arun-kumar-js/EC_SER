@@ -9,10 +9,15 @@ import {
   Image,
   StatusBar,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserData, getWalletBalance } from '../Fuctions/UserDataService';
+import { updateUserProfile } from '../Fuctions/UserProfileService';
+import Toast from 'react-native-toast-message';
+import MapView, { Marker, PROVIDER_APPLE } from 'react-native-maps';
+import Geolocation from '@react-native-community/geolocation';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -22,22 +27,77 @@ const ProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState({
+    latitude: 3.4300291,
+    longitude: 101.55816659999999,
+  });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     mobile: '',
-    state: 'Tamil Nadu',
-    city: 'Chennai',
-    area: 'Saidapet',
-    zipCode: '600015',
-    address: 'No 23, 5th street, little mount, Chennai',
-    location: 'Little Mount, Kotturpuram, Chennai, Tamil Nadu, India',
-    dateOfBirth: '23/10/2000',
+    state: '',
+    city: '',
+    area: '',
+    zipCode: '',
+    address: '',
+    location: '',
+    dateOfBirth: '',
   });
 
   useEffect(() => {
     loadUserData();
   }, []);
+
+  const refreshProfileData = async () => {
+    console.log('=== REFRESHING PROFILE DATA ===');
+    await loadUserData();
+  };
+
+  const toggleEditMode = async () => {
+    if (isEditMode) {
+      // Currently in edit mode, save changes
+      await handleUpdate();
+    } else {
+      // Currently in view mode, enter edit mode
+      setIsEditMode(true);
+      console.log('Entered edit mode');
+    }
+  };
+
+  const getCurrentLocation = () => {
+    Geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        setCurrentLocation({ latitude, longitude });
+        console.log('Current location:', { latitude, longitude });
+      },
+      error => {
+        console.error('Error getting location:', error);
+        Alert.alert('Location Error', 'Unable to get current location');
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
+  };
+
+  const openMapModal = () => {
+    getCurrentLocation();
+    setMapModalVisible(true);
+  };
+
+  const closeMapModal = () => {
+    setMapModalVisible(false);
+  };
+
+  const handleLocationSelect = (coordinate) => {
+    setCurrentLocation(coordinate);
+    setFormData(prev => ({
+      ...prev,
+      location: `${coordinate.latitude}, ${coordinate.longitude}`,
+    }));
+    closeMapModal();
+  };
 
   const loadUserData = async () => {
     try {
@@ -65,19 +125,35 @@ const ProfileScreen = ({ navigation }) => {
             // Use fresh data from API
             setUserData(userResult.data);
             
-            // Update form data with fresh user data
+            // Update form data with fresh user data from API response
             const updatedFormData = {
-              name: userResult.data.name || userResult.data.username || '',
+              name: userResult.data.name || '',
               email: userResult.data.email || '',
-              mobile: userResult.data.mobile || userResult.data.phone || '',
-              state: userResult.data.state || 'Tamil Nadu',
-              city: userResult.data.city || 'Chennai',
-              area: userResult.data.area || 'Saidapet',
-              zipCode: userResult.data.zipcode || userResult.data.zip_code || '600015',
-              address: userResult.data.address || 'No 23, 5th street, little mount, Chennai',
-              location: userResult.data.location || 'Little Mount, Kotturpuram, Chennai, Tamil Nadu, India',
-              dateOfBirth: userResult.data.date_of_birth || userResult.data.dob || '23/10/2000',
+              mobile: userResult.data.mobile || '',
+              state: userResult.data.state_name || '',
+              city: userResult.data.city_name || '',
+              area: userResult.data.area_name || '',
+              zipCode: userResult.data.pincode || '',
+              address: userResult.data.street || '',
+              location: `${userResult.data.street || ''}, ${userResult.data.city_name || ''}, ${userResult.data.state_name || ''}`.replace(/^,\s*|,\s*$/g, ''),
+              dateOfBirth: userResult.data.dob || '',
             };
+            
+            console.log('=== PROFILE API DATA MAPPING ===');
+            console.log('API Response Data:', userResult.data);
+            console.log('Mapped Form Data:', updatedFormData);
+            console.log('User ID:', userResult.data.user_id);
+            console.log('Name:', userResult.data.name);
+            console.log('Email:', userResult.data.email);
+            console.log('Mobile:', userResult.data.mobile);
+            console.log('Balance:', userResult.data.balance);
+            console.log('City:', userResult.data.city_name);
+            console.log('State:', userResult.data.state_name);
+            console.log('Pincode:', userResult.data.pincode);
+            console.log('Street:', userResult.data.street);
+            console.log('Referral Code:', userResult.data.referral_code);
+            console.log('Status:', userResult.data.status);
+            console.log('Created At:', userResult.data.created_at);
             console.log('Updated form data:', updatedFormData);
             setFormData(prev => ({
               ...prev,
@@ -101,6 +177,13 @@ const ProfileScreen = ({ navigation }) => {
               name: userObj.name || userObj.username || '',
               email: userObj.email || '',
               mobile: userObj.mobile || userObj.phone || '',
+              state: userObj.state_name || '',
+              city: userObj.city_name || '',
+              area: userObj.area_name || '',
+              zipCode: userObj.pincode || '',
+              address: userObj.street || '',
+              location: userObj.location || '',
+              dateOfBirth: userObj.dob || '',
             }));
           }
         } else {
@@ -112,6 +195,13 @@ const ProfileScreen = ({ navigation }) => {
             name: userObj.name || userObj.username || '',
             email: userObj.email || '',
             mobile: userObj.mobile || userObj.phone || '',
+            state: userObj.state_name || '',
+            city: userObj.city_name || '',
+            area: userObj.area_name || '',
+            zipCode: userObj.pincode || '',
+            address: userObj.street || '',
+            location: userObj.location || '',
+            dateOfBirth: userObj.dob || '',
           }));
         }
       } else {
@@ -128,8 +218,77 @@ const ProfileScreen = ({ navigation }) => {
     }
   };
 
-  const handleUpdate = () => {
-    Alert.alert('Success', 'Profile updated successfully!');
+  const handleUpdate = async () => {
+    try {
+      console.log('=== UPDATING PROFILE ===');
+      console.log('Form Data:', formData);
+      console.log('User Data:', userData);
+      
+      if (!userData || !userData.user_id) {
+        Alert.alert('Error', 'User data not available');
+        return;
+      }
+
+      // Prepare profile data for API
+      const profileData = {
+        user_id: userData.user_id,
+        name: formData.name,
+        email: formData.email,
+        mobile: formData.mobile,
+        address: formData.address,
+        zipCode: formData.zipCode,
+        city_id: formData.city_id || '',
+        state_id: formData.state_id || '',
+        area_id: formData.area_id || '',
+        latitude: currentLocation.latitude.toString(),
+        longitude: currentLocation.longitude.toString(),
+        dateOfBirth: formData.dateOfBirth,
+      };
+
+      console.log('Profile Data for API:', profileData);
+
+      const result = await updateUserProfile(profileData);
+
+      if (result.success) {
+        Toast.show({
+          type: 'success',
+          text1: 'Profile Updated',
+          text2: result.message,
+          position: 'top',
+        });
+        
+        // Update local user data
+        setUserData(prev => ({
+          ...prev,
+          name: formData.name,
+          email: formData.email,
+          mobile: formData.mobile,
+          street: formData.address,
+          pincode: formData.zipCode,
+        }));
+
+        // Exit edit mode
+        setIsEditMode(false);
+        
+        // Refresh profile data
+        await refreshProfileData();
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Update Failed',
+          text2: result.message,
+          position: 'top',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to update profile',
+        position: 'top',
+      });
+    }
   };
 
   const handleChangePassword = () => {
@@ -180,14 +339,27 @@ const ProfileScreen = ({ navigation }) => {
             resizeMode="contain"
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Image 
-            source={require('../Assets/icon/logout.png')} 
-            style={styles.logoutIcon}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {isEditMode ? 'Edit Profile' : 'Profile'}
+        </Text>
+        <View style={styles.headerRight}>
+          {isEditMode ? (
+            <TouchableOpacity onPress={toggleEditMode} style={styles.editButton}>
+              <Text style={styles.editButtonText}>Save</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={toggleEditMode} style={styles.editButton}>
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Image 
+              source={require('../Assets/icon/logout.png')} 
+              style={styles.logoutIcon}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -314,10 +486,10 @@ const ProfileScreen = ({ navigation }) => {
           </View>
 
           {/* Map Placeholder */}
-          <View style={styles.mapContainer}>
+          <TouchableOpacity style={styles.mapContainer} onPress={openMapModal}>
             <Text style={styles.mapText}>Map View</Text>
-            <Text style={styles.mapSubtext}>Location will be displayed here</Text>
-          </View>
+            <Text style={styles.mapSubtext}>Tap to view/select location</Text>
+          </TouchableOpacity>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Date Of Birth (Optional)</Text>
@@ -330,14 +502,7 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
-            <Text style={styles.updateButtonText}>Edit profile</Text>
-          </TouchableOpacity>
-          
-        
-        </View>
+        {/* Action Buttons - Removed duplicate edit button as header already has edit functionality */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -485,23 +650,6 @@ const styles = StyleSheet.create({
     color: '#999',
     fontFamily: 'Montserrat-Regular',
     marginTop: hp('0.5%'),
-  },
-  buttonContainer: {
-    paddingHorizontal: wp('4%'),
-    paddingBottom: hp('4%'),
-  },
-  updateButton: {
-    backgroundColor: '#e60023',
-    borderRadius: wp('2%'),
-    paddingVertical: hp('2%'),
-    alignItems: 'center',
-    marginBottom: hp('2%'),
-  },
-  updateButtonText: {
-    color: '#fff',
-    fontSize: wp('4.5%'),
-    fontFamily: 'Montserrat-Bold',
-    fontWeight: 'bold',
   },
   changePasswordButton: {
     alignItems: 'center',

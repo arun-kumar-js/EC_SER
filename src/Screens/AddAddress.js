@@ -33,6 +33,8 @@ import {
   ADD_NEW_ADDRESS_AREA,
   API_ACCESS_KEY,
 } from '../config/config';
+import { addNewAddress, editAddress } from '../Fuctions/AddressService';
+import Toast from 'react-native-toast-message';
 
 const HEADER_COLOR = '#F40612';
 const BACKGROUND_COLOR = '#FFFFFF';
@@ -61,6 +63,8 @@ const AddAddress = ({ route, navigation }) => {
 
   const [selectedState, setSelectedState] = useState(null);
   const [selectedCity, setSelectedCity] = useState(null);
+  const [originalAddressData, setOriginalAddressData] = useState(null);
+  const [formInitialized, setFormInitialized] = useState(false);
 
   // Get route parameters
   const { editMode = false, addressData = null, user_id = null } = route?.params || {};
@@ -140,38 +144,76 @@ const AddAddress = ({ route, navigation }) => {
     navigation.navigate('Login');
   };
 
-  // Populate form data when in edit mode
+  // Store original address data when in edit mode
   useEffect(() => {
-    if (editMode && addressData) {
+    if (editMode && addressData && !originalAddressData) {
+      console.log('=== STORING ORIGINAL ADDRESS DATA ===');
+      console.log('Original Address Data:', addressData);
+      console.log('Original Address ID:', addressData.id);
+      setOriginalAddressData(addressData);
+    }
+  }, [editMode, addressData, originalAddressData]);
+
+  // Populate form data when in edit mode and states are loaded (only once)
+  useEffect(() => {
+    if (editMode && originalAddressData && states.length > 0 && !formInitialized) {
+      console.log('=== POPULATING EDIT FORM DATA (INITIAL) ===');
+      console.log('Original Address Data:', originalAddressData);
+      console.log('Available States:', states);
+      console.log('Available Cities:', cities);
+      console.log('Form Initialized:', formInitialized);
+      
       setFormData({
-        name: addressData.name || '',
-        mobile: addressData.mobile || '',
-        email: addressData.email || '',
-        address: addressData.address || '',
-        landmark: addressData.landmark || '',
-        pincode: addressData.pincode || '',
-        latitude: addressData.latitude || '',
-        longitude: addressData.longitude || ''
+        name: originalAddressData.name || '',
+        mobile: originalAddressData.mobile || '',
+        email: originalAddressData.email || '',
+        address: originalAddressData.address || '',
+        landmark: originalAddressData.landmark || '',
+        pincode: originalAddressData.pincode || '',
+        latitude: originalAddressData.latitude || '',
+        longitude: originalAddressData.longitude || ''
       });
 
       // Set selected state and city if available
-      if (addressData.state_id) {
+      // Handle both state_id and state field names
+      const stateId = originalAddressData.state_id || originalAddressData.state;
+      const cityId = originalAddressData.city_id || originalAddressData.city;
+      
+      console.log('State ID from data:', stateId);
+      console.log('City ID from data:', cityId);
+      console.log('Original Address ID:', originalAddressData.id);
+      
+      if (stateId && stateId !== "0" && stateId !== "") {
         // Find and set the state
-        const state = states.find(s => s.id === addressData.state_id);
+        const state = states.find(s => s.id === stateId || s.id === parseInt(stateId));
         if (state) {
+          console.log('Found state:', state);
           setSelectedState(state);
+        } else {
+          console.log('State not found in states list');
         }
+      } else {
+        console.log('No valid state ID found');
       }
 
-      if (addressData.city_id) {
+      if (cityId && cityId !== "0" && cityId !== "") {
         // Find and set the city
-        const city = cities.find(c => c.id === addressData.city_id);
+        const city = cities.find(c => c.id === cityId || c.id === parseInt(cityId));
         if (city) {
+          console.log('Found city:', city);
           setSelectedCity(city);
+        } else {
+          console.log('City not found in cities list');
         }
+      } else {
+        console.log('No valid city ID found');
       }
+
+      // Mark form as initialized to prevent overwriting user changes
+      setFormInitialized(true);
+      console.log('Form marked as initialized');
     }
-  }, [editMode, addressData, states, cities]);
+  }, [editMode, originalAddressData, states, cities, formInitialized]);
 
   // Request location permission
   const requestLocationPermission = async () => {
@@ -194,6 +236,158 @@ const AddAddress = ({ route, navigation }) => {
       }
     }
     return true; // iOS permissions are handled in Info.plist
+  };
+
+  // Handle save/update address
+  const handleSaveAddress = async () => {
+    try {
+      // Validate required fields
+      if (!formData.name.trim()) {
+        Toast.show({
+          type: 'error',
+          text1: 'Validation Error',
+          text2: 'Please enter your name',
+          position: 'top',
+        });
+        return;
+      }
+
+      if (!formData.mobile.trim()) {
+        Toast.show({
+          type: 'error',
+          text1: 'Validation Error',
+          text2: 'Please enter your mobile number',
+          position: 'top',
+        });
+        return;
+      }
+
+      if (!formData.address.trim()) {
+        Toast.show({
+          type: 'error',
+          text1: 'Validation Error',
+          text2: 'Please enter your address',
+          position: 'top',
+        });
+        return;
+      }
+
+      if (!selectedState) {
+        Toast.show({
+          type: 'error',
+          text1: 'Validation Error',
+          text2: 'Please select a state',
+          position: 'top',
+        });
+        return;
+      }
+
+      if (!selectedCity) {
+        Toast.show({
+          type: 'error',
+          text1: 'Validation Error',
+          text2: 'Please select a city',
+          position: 'top',
+        });
+        return;
+      }
+
+      if (!formData.pincode.trim()) {
+        Toast.show({
+          type: 'error',
+          text1: 'Validation Error',
+          text2: 'Please enter pincode',
+          position: 'top',
+        });
+        return;
+      }
+
+      // Prepare address data
+      const addressData = {
+        user_id: userData?.user_id || userData?.id,
+        name: formData.name.trim(),
+        mobile: formData.mobile.trim(),
+        email: formData.email.trim(),
+        address: formData.address.trim(),
+        landmark: formData.landmark.trim(),
+        city_id: selectedCity.id,
+        state_id: selectedState.id,
+        area_id: selectedCity.id, // Using city_id as area_id for now
+        pincode: formData.pincode.trim(),
+        latitude: formData.latitude || currentLocation.latitude.toString(),
+        longitude: formData.longitude || currentLocation.longitude.toString(),
+        address_type: 'home', // Default address type
+        street: formData.address.trim(), // Using address as street
+        gst_no: '', // Empty for now
+        // Include original address ID when in edit mode
+        ...(editMode && originalAddressData && { id: originalAddressData.id }),
+      };
+
+      console.log('=== FORM DATA PREPARATION ===');
+      console.log('Edit Mode:', editMode);
+      console.log('Original Address Data:', originalAddressData);
+      console.log('Original Address ID:', originalAddressData?.id);
+      console.log('Selected State:', selectedState);
+      console.log('Selected City:', selectedCity);
+      console.log('State ID:', selectedState.id);
+      console.log('City ID:', selectedCity.id);
+      console.log('Form Data:', formData);
+      console.log('Prepared Address Data:', addressData);
+      console.log('Address ID in prepared data:', addressData.id);
+
+      console.log('=== SAVING ADDRESS ===');
+      console.log('Edit Mode:', editMode);
+      console.log('Address Data:', addressData);
+
+      let result;
+      if (editMode) {
+        // Update existing address
+        const updateData = {
+          ...addressData,
+          id: addressData.id, // Use the original address ID from route params
+        };
+        console.log('=== UPDATING ADDRESS ===');
+        console.log('Edit Mode:', editMode);
+        console.log('Original Address Data from Route:', addressData);
+        console.log('Form Data Prepared:', addressData);
+        console.log('Update Data with ID:', updateData);
+        console.log('Address ID being updated:', updateData.id);
+        console.log('User ID:', updateData.user_id);
+        result = await editAddress(updateData);
+      } else {
+        // Add new address
+        console.log('=== ADDING NEW ADDRESS ===');
+        console.log('Address Data:', addressData);
+        result = await addNewAddress(addressData);
+      }
+
+      if (result.success) {
+        Toast.show({
+          type: 'success',
+          text1: editMode ? 'Address Updated' : 'Address Added',
+          text2: result.message,
+          position: 'top',
+        });
+
+        // Navigate back to AddressPage
+        navigation.goBack();
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: result.message || 'Failed to save address',
+          position: 'top',
+        });
+      }
+    } catch (error) {
+      console.error('Error saving address:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'An error occurred while saving address',
+        position: 'top',
+      });
+    }
   };
 
   // Get current location
@@ -239,6 +433,10 @@ const AddAddress = ({ route, navigation }) => {
   };
 
   const handleStateSelect = state => {
+    console.log('=== STATE SELECTED ===');
+    console.log('Selected State:', state);
+    console.log('State ID:', state.id);
+    console.log('State Name:', state.name);
     setSelectedState(state);
     setSelectedCity(null);
     setCities([]);
@@ -259,6 +457,10 @@ const AddAddress = ({ route, navigation }) => {
   };
 
   const handleCitySelect = city => {
+    console.log('=== CITY SELECTED ===');
+    console.log('Selected City:', city);
+    console.log('City ID:', city.id);
+    console.log('City Name:', city.name);
     setSelectedCity(city);
     setCityModalVisible(false);
   };
@@ -510,7 +712,7 @@ const AddAddress = ({ route, navigation }) => {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.saveButton}>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveAddress}>
           <Text style={styles.saveButtonText}>{editMode ? 'Update Address' : 'Save Address & Continue'}</Text>
         </TouchableOpacity>
       </View>

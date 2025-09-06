@@ -109,13 +109,29 @@ export const editAddress = async (addressData) => {
     formData.append('longitude', addressData.longitude || '');
     formData.append('gst_no', addressData.gst_no || '');
 
-    // Log form data
-    console.log('=== EDIT ADDRESS ===');
-    console.log('Address ID:', addressData.id);
-    console.log('User ID:', addressData.user_id);
-    console.log('Access Key:', API_ACCESS_KEY);
-    console.log('Type:', 'update_address');
-    console.log('Form Data:', {
+    // Log form data entries individually
+    console.log('=== EDIT ADDRESS FORM DATA ENTRIES ===');
+    console.log('accesskey:', API_ACCESS_KEY);
+    console.log('type:', 'update_address');
+    console.log('id:', addressData.id);
+    console.log('user_id:', addressData.user_id);
+    console.log('name:', addressData.name);
+    console.log('mobile:', addressData.mobile);
+    console.log('email:', addressData.email || '');
+    console.log('address:', addressData.address);
+    console.log('street:', addressData.street || '');
+    console.log('landmark:', addressData.landmark || '');
+    console.log('city_id:', addressData.city_id);
+    console.log('state_id:', addressData.state_id);
+    console.log('area_id:', addressData.area_id);
+    console.log('pincode:', addressData.pincode);
+    console.log('latitude:', addressData.latitude || '');
+    console.log('longitude:', addressData.longitude || '');
+    console.log('gst_no:', addressData.gst_no || '');
+    
+    // Also log the complete form data object
+    console.log('=== COMPLETE FORM DATA OBJECT ===');
+    console.log('Form Data Object:', {
       accesskey: API_ACCESS_KEY,
       type: 'update_address',
       id: addressData.id,

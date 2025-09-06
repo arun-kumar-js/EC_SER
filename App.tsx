@@ -31,6 +31,7 @@ import Rating from './src/Screens/Rating';
 import OrderDatials from './src/Screens/OrderDatials';
 import Search from './src/Search';
 import PaymentFailure from './src/Screens/PaymentFailure';
+import NotificationScreen from './src/Screens/Notification';
 import { initDB } from './src/DataBase/db';
 import Toast from 'react-native-toast-message';
 
@@ -92,6 +93,7 @@ const App = () => {
           <Stack.Screen name="OrderDatials" component={OrderDatials} />
           <Stack.Screen name="Search" component={Search} />
           <Stack.Screen name="PaymentFailure" component={PaymentFailure} />
+          <Stack.Screen name="Notification" component={NotificationScreen} />
         </Stack.Navigator>
         <Toast />
       </NavigationContainer>

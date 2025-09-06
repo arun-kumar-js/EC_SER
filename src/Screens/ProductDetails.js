@@ -126,7 +126,7 @@ const ProductDetails = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContentContainer}>
+        <View contentContainerStyle={styles.scrollContentContainer}>
           <Image
             source={{
               uri:
@@ -142,7 +142,7 @@ const ProductDetails = ({ route, navigation }) => {
                 <View style={styles.ratingContainer}>
                   <View style={styles.ratingBadge}>
                     <Text style={styles.ratingText}>
-                      {product.rating || 0.0}
+                      {product.rating ? Number(product.rating).toFixed(2) : '0.00'}
                     </Text>
                     <Text style={styles.star}> ★ </Text>
                   </View>
@@ -189,12 +189,12 @@ const ProductDetails = ({ route, navigation }) => {
           </View>
           {/* Quantity box and Add button row */}
           <View style={styles.cartRow}>
-            <View style={[styles.quantityBox, { flex: 0.6 }]}>
+            <View style={[styles.quantityBox]}>
               <Text style={styles.quantity}>
                 Qty: {product?.variants?.[0]?.measurement_unit_name || 'N/A'}
               </Text>
             </View>
-            <View style={[styles.cartButtonContainer, { flex: 0.35 }]}>
+            <View style={[styles.cartButtonContainer]}>
               <CartButton
                 product={product}
                 initialQuantity={0}
@@ -231,7 +231,7 @@ const ProductDetails = ({ route, navigation }) => {
               </Text>
             ) : null}
           </View>
-        </ScrollView>
+        </View>
         <View style={styles.footer}>
           <TouchableOpacity 
             style={[styles.saveButton, isInWishlist && styles.saveButtonActive]}
@@ -294,11 +294,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: hp('40%'),
     resizeMode: 'cover',
- 
-    //marginTop: hp('1%'),
-    //paddingTop: hp('3%'),
+    marginLeft: wp('1%'),
+    marginTop: hp('1%'),
+    marginRight: wp('41%'),
     borderRadius: wp('2%'),
-   // marginHorizontal: wp('1%'),
   },
   detailsContainer: {
     paddingHorizontal: wp('4%'),
