@@ -1,0 +1,10 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["**/*.ts", "**/*.tsx", "src/Screens/AddAddress.js", "src/Screens/AddressPage.js", "src/Screens/BottomTap/More.JS", "src/Screens/ProductDetails.js", "src/Screens/BottomTap/WishList.js"],
+  "exclude": ["**/node_modules", "**/Pods"]
+}

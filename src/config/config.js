@@ -1,0 +1,9 @@
+export const API_ACCESS_KEY = '90336';
+export const API_BASE_URL = 'https://spiderekart.in/ec_service/api-firebase/';
+export const HOMEPAGE_ENDPOINT = `${API_BASE_URL}homepage.php`;
+export const SUB_CATEGORIES_ENDPOINT = `${API_BASE_URL}get-products-by-category-id.php`;
+export const GET_ALL_ADDRESSES = `${API_BASE_URL}user_addresses.php`;
+export const LOGIN_OTP = `${API_BASE_URL}otp-login.php`;
+export const ADD_NEW_ADDRESS_STATE = `${API_BASE_URL}get-states.php`;
+export const ADD_NEW_ADDRESS_CITY = `${API_BASE_URL}get-cities.php`;
+export const ADD_NEW_ADDRESS_AREA = `${API_BASE_URL}get-areas-by-city-id.php`;
