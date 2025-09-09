@@ -23,7 +23,16 @@ export const getDeliveryMethods = async () => {
     console.log('Response Headers:', response.headers);
     console.log('Full Response Data:', response.data);
 
-    if ( response.data.error === false) {
+    // Check if response contains delivery method data (even without error field)
+    if (response.data && (response.data.in_persion_delivery !== undefined || response.data.Delivery_by_courier !== undefined)) {
+      console.log('✅ Success: Delivery methods fetched successfully');
+      return {
+        success: true,
+        data: response.data,
+      };
+    }
+
+    if (response.data.error === false) {
       console.log('✅ Success: Delivery methods fetched successfully');
       return {
         success: true,

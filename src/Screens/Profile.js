@@ -36,6 +36,39 @@ const ProfileScreen = ({ navigation }) => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
+  
+  // Separate display values for TextInput components
+  const [displayValues, setDisplayValues] = useState({
+    name: '',
+    email: '',
+    mobile: '',
+    state: '',
+    city: '',
+    zipCode: '',
+    address: '',
+    dateOfBirth: '',
+    gst_no: '',
+    landmark: '',
+  });
+
+  // Debug form data changes
+  useEffect(() => {
+    console.log('Form data changed:', formData);
+    // Update display values when form data changes
+    setDisplayValues({
+      name: formData.name || '',
+      email: formData.email || '',
+      mobile: formData.mobile || '',
+      state: formData.state || '',
+      city: formData.city || '',
+      zipCode: formData.zipCode || '',
+      address: formData.address || '',
+      dateOfBirth: formData.dateOfBirth || '',
+      gst_no: formData.gst_no || '',
+      landmark: formData.landmark || '',
+    });
+  }, [formData]);
   const [mapModalVisible, setMapModalVisible] = useState(false);
   const [mapLoading, setMapLoading] = useState(true);
   const [currentLocation, setCurrentLocation] = useState({
@@ -48,26 +81,23 @@ const ProfileScreen = ({ navigation }) => {
     mobile: '',
     state: '',
     city: '',
-    area: '',
     zipCode: '',
     address: '',
     location: '',
     dateOfBirth: '',
     state_id: '',
     city_id: '',
-    area_id: '',
+    gst_no: '',
+    landmark: '',
   });
 
   // State and city selection states
   const [states, setStates] = useState([]);
   const [cities, setCities] = useState([]);
-  const [areas, setAreas] = useState([]);
   const [selectedState, setSelectedState] = useState(null);
   const [selectedCity, setSelectedCity] = useState(null);
-  const [selectedArea, setSelectedArea] = useState(null);
   const [stateModalVisible, setStateModalVisible] = useState(false);
   const [cityModalVisible, setCityModalVisible] = useState(false);
-  const [areaModalVisible, setAreaModalVisible] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -104,9 +134,7 @@ const ProfileScreen = ({ navigation }) => {
   const handleStateSelect = (state) => {
     setSelectedState(state);
     setSelectedCity(null);
-    setSelectedArea(null);
     setCities([]);
-    setAreas([]);
     setStateModalVisible(false);
 
     // Update form data
@@ -116,8 +144,13 @@ const ProfileScreen = ({ navigation }) => {
       state_id: state.id,
       city: '',
       city_id: '',
-      area: '',
-      area_id: '',
+    }));
+    
+    // Update display values
+    setDisplayValues(prev => ({
+      ...prev,
+      state: state.name,
+      city: '',
     }));
 
     // Fetch cities for selected state
@@ -126,8 +159,6 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleCitySelect = (city) => {
     setSelectedCity(city);
-    setSelectedArea(null);
-    setAreas([]);
     setCityModalVisible(false);
 
     // Update form data
@@ -135,22 +166,15 @@ const ProfileScreen = ({ navigation }) => {
       ...prev,
       city: city.name,
       city_id: city.id,
-      area: '',
-      area_id: '',
     }));
-  };
-
-  const handleAreaSelect = (area) => {
-    setSelectedArea(area);
-    setAreaModalVisible(false);
-
-    // Update form data
-    setFormData(prev => ({
+    
+    // Update display values
+    setDisplayValues(prev => ({
       ...prev,
-      area: area.name,
-      area_id: area.id,
+      city: city.name,
     }));
   };
+
 
   const refreshProfileData = async () => {
     console.log('=== REFRESHING PROFILE DATA ===');
@@ -233,35 +257,37 @@ const ProfileScreen = ({ navigation }) => {
               name: userResult.data.name || '',
               email: userResult.data.email || '',
               mobile: userResult.data.mobile || '',
-              state: userResult.data.state_name || '',
-              city: userResult.data.city_name || '',
-              area: userResult.data.area_name || '',
+              state: userResult.data.state_name || selectedState?.name || '',
+              city: userResult.data.city_name || selectedCity?.name || '',
               zipCode: userResult.data.pincode || '',
               address: userResult.data.street || '',
-              location: `${userResult.data.street || ''}, ${userResult.data.city_name || ''}, ${userResult.data.state_name || ''}`.replace(/^,\s*|,\s*$/g, ''),
+              location: `${userResult.data.street || ''}, ${userResult.data.city_name || selectedCity?.name || ''}, ${userResult.data.state_name || selectedState?.name || ''}`.replace(/^,\s*|,\s*$/g, ''),
               dateOfBirth: userResult.data.dob || '',
-              state_id: userResult.data.state_id || '',
-              city_id: userResult.data.city_id || '',
-              area_id: userResult.data.area_id || '',
+              state_id: userResult.data.state_id || selectedState?.id || '',
+              city_id: userResult.data.city_id || selectedCity?.id || '',
+              gst_no: userResult.data.gst_no || '',
+              landmark: userResult.data.landmark || '',
             };
 
             // Set selected state and city if they exist
-            if (userResult.data.state_id && userResult.data.state_name) {
+            if (userResult.data.state_id) {
+              // If state_name is not available, try to find it from states list
+              const stateName = userResult.data.state_name || 
+                (states.find(s => s.id === userResult.data.state_id)?.name) || 
+                '';
               setSelectedState({
                 id: userResult.data.state_id,
-                name: userResult.data.state_name
+                name: stateName
               });
             }
-            if (userResult.data.city_id && userResult.data.city_name) {
+            if (userResult.data.city_id) {
+              // If city_name is not available, try to find it from cities list
+              const cityName = userResult.data.city_name || 
+                (cities.find(c => c.id === userResult.data.city_id)?.name) || 
+                '';
               setSelectedCity({
                 id: userResult.data.city_id,
-                name: userResult.data.city_name
-              });
-            }
-            if (userResult.data.area_id && userResult.data.area_name) {
-              setSelectedArea({
-                id: userResult.data.area_id,
-                name: userResult.data.area_name
+                name: cityName
               });
             }
 
@@ -293,10 +319,32 @@ const ProfileScreen = ({ navigation }) => {
             console.log('Status:', userResult.data.status);
             console.log('Created At:', userResult.data.created_at);
             console.log('Updated form data:', updatedFormData);
-            setFormData(prev => ({
-              ...prev,
-              ...updatedFormData,
-            }));
+            console.log('Setting form data with:', updatedFormData);
+            setFormData(prev => {
+              const newData = {
+                ...prev,
+                ...updatedFormData,
+              };
+              console.log('New form data after setState:', newData);
+              return newData;
+            });
+            
+            // Force update display values immediately
+            setDisplayValues({
+              name: updatedFormData.name || '',
+              email: updatedFormData.email || '',
+              mobile: updatedFormData.mobile || '',
+              state: updatedFormData.state || '',
+              city: updatedFormData.city || '',
+              zipCode: updatedFormData.zipCode || '',
+              address: updatedFormData.address || '',
+              dateOfBirth: updatedFormData.dateOfBirth || '',
+              gst_no: updatedFormData.gst_no || '',
+              landmark: updatedFormData.landmark || '',
+            });
+            
+            // Force update to ensure TextInput components re-render
+            setForceUpdate(prev => prev + 1);
 
             // Get wallet balance
             console.log('Getting wallet balance for userId:', userId);
@@ -310,37 +358,71 @@ const ProfileScreen = ({ navigation }) => {
             console.log('UserDataService API failed or no data returned, using stored data');
             // Fallback to stored data if API fails
             setUserData(userObj);
-            setFormData(prev => ({
-              ...prev,
+            const fallbackData = {
               name: userObj.name || userObj.username || '',
               email: userObj.email || '',
               mobile: userObj.mobile || userObj.phone || '',
               state: userObj.state_name || '',
               city: userObj.city_name || '',
-              area: userObj.area_name || '',
               zipCode: userObj.pincode || '',
               address: userObj.street || '',
               location: userObj.location || '',
               dateOfBirth: userObj.dob || '',
+            };
+            
+            setFormData(prev => ({
+              ...prev,
+              ...fallbackData,
             }));
+            
+            // Update display values immediately
+            setDisplayValues({
+              name: fallbackData.name || '',
+              email: fallbackData.email || '',
+              mobile: fallbackData.mobile || '',
+              state: fallbackData.state || '',
+              city: fallbackData.city || '',
+              zipCode: fallbackData.zipCode || '',
+              address: fallbackData.address || '',
+              dateOfBirth: fallbackData.dateOfBirth || '',
+              gst_no: '',
+              landmark: '',
+            });
           }
         } else {
           console.log('No user ID found in stored user data, using stored data');
           // No user ID, use stored data
           setUserData(userObj);
-          setFormData(prev => ({
-            ...prev,
+          const fallbackData2 = {
             name: userObj.name || userObj.username || '',
             email: userObj.email || '',
             mobile: userObj.mobile || userObj.phone || '',
             state: userObj.state_name || '',
             city: userObj.city_name || '',
-            area: userObj.area_name || '',
             zipCode: userObj.pincode || '',
             address: userObj.street || '',
             location: userObj.location || '',
             dateOfBirth: userObj.dob || '',
+          };
+          
+          setFormData(prev => ({
+            ...prev,
+            ...fallbackData2,
           }));
+          
+          // Update display values immediately
+          setDisplayValues({
+            name: fallbackData2.name || '',
+            email: fallbackData2.email || '',
+            mobile: fallbackData2.mobile || '',
+            state: fallbackData2.state || '',
+            city: fallbackData2.city || '',
+            zipCode: fallbackData2.zipCode || '',
+            address: fallbackData2.address || '',
+            dateOfBirth: fallbackData2.dateOfBirth || '',
+            gst_no: '',
+            landmark: '',
+          });
         }
       } else {
         console.log('No stored user data found in AsyncStorage');
@@ -361,31 +443,44 @@ const ProfileScreen = ({ navigation }) => {
       console.log('=== UPDATING PROFILE ===');
       console.log('Form Data:', formData);
       console.log('User Data:', userData);
+      console.log('Selected State:', selectedState);
+      console.log('Selected City:', selectedCity);
+      console.log('Current Location:', currentLocation);
       
       if (!userData || !userData.user_id) {
         Alert.alert('Error', 'User data not available');
         return;
       }
 
+      // Validate required fields
+      if (!formData.name || !formData.email || !formData.mobile) {
+        Alert.alert('Error', 'Please fill in all required fields (Name, Email, Mobile)');
+        return;
+      }
+
       // Prepare profile data for API
       const profileData = {
         user_id: userData.user_id,
+        fcm_id: userData.fcm_id || '',
         name: formData.name,
-        email: formData.email,
         mobile: formData.mobile,
+        email: formData.email,
         address: formData.address,
+        state_id: formData.state_id || selectedState?.id || '',
+        city_id: formData.city_id || selectedCity?.id || '',
         zipCode: formData.zipCode,
-        city_id: formData.city_id || '',
-        state_id: formData.state_id || '',
-        area_id: formData.area_id || '',
+        gst_no: formData.gst_no || '',
+        landmark: formData.landmark || '',
         latitude: currentLocation.latitude.toString(),
         longitude: currentLocation.longitude.toString(),
         dateOfBirth: formData.dateOfBirth,
       };
 
       console.log('Profile Data for API:', profileData);
+      console.log('Calling updateUserProfile with:', profileData);
 
       const result = await updateUserProfile(profileData);
+      console.log('Update result:', result);
 
       if (result.success) {
         Toast.show({
@@ -409,7 +504,7 @@ const ProfileScreen = ({ navigation }) => {
         setIsEditMode(false);
         
         // Refresh profile data
-        await refreshProfileData();
+        await loadUserData();
       } else {
         Toast.show({
           type: 'error',
@@ -510,8 +605,11 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.label}>Name</Text>
             <TextInput
               style={[styles.input, !isEditMode && styles.readOnlyInput]}
-              value={formData.name}
-              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, name: text })) : undefined}
+              value={displayValues.name}
+              onChangeText={isEditMode ? (text) => {
+                setFormData(prev => ({ ...prev, name: text }));
+                setDisplayValues(prev => ({ ...prev, name: text }));
+              } : undefined}
               placeholder="Enter your name"
               editable={isEditMode}
             />
@@ -521,8 +619,11 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.label}>Email</Text>
             <TextInput
               style={[styles.input, !isEditMode && styles.readOnlyInput]}
-              value={formData.email}
-              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, email: text })) : undefined}
+              value={displayValues.email}
+              onChangeText={isEditMode ? (text) => {
+                setFormData(prev => ({ ...prev, email: text }));
+                setDisplayValues(prev => ({ ...prev, email: text }));
+              } : undefined}
               placeholder="Enter your email"
               keyboardType="email-address"
               editable={isEditMode}
@@ -533,8 +634,11 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.label}>Mobile No</Text>
             <TextInput
               style={[styles.input, !isEditMode && styles.readOnlyInput]}
-              value={formData.mobile}
-              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, mobile: text })) : undefined}
+              value={displayValues.mobile}
+              onChangeText={isEditMode ? (text) => {
+                setFormData(prev => ({ ...prev, mobile: text }));
+                setDisplayValues(prev => ({ ...prev, mobile: text }));
+              } : undefined}
               placeholder="Enter your mobile number"
               keyboardType="phone-pad"
               editable={isEditMode}
@@ -550,7 +654,7 @@ const ProfileScreen = ({ navigation }) => {
             >
               <TextInput
                 style={[styles.input, !isEditMode && styles.readOnlyInput]}
-                value={formData.state}
+                value={displayValues.state}
                 editable={false}
                 placeholder="Select State"
               />
@@ -582,7 +686,7 @@ const ProfileScreen = ({ navigation }) => {
             >
               <TextInput
                 style={[styles.input, !isEditMode && styles.readOnlyInput]}
-                value={formData.city}
+                value={displayValues.city}
                 editable={false}
                 placeholder="Select City"
               />
@@ -596,41 +700,16 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Select Area</Text>
-            <TouchableOpacity 
-              style={styles.dropdownContainer}
-              onPress={isEditMode ? () => {
-                if (areas.length > 0) {
-                  setAreaModalVisible(true);
-                } else {
-                  Alert.alert('Please select a city first');
-                }
-              } : undefined}
-              disabled={!isEditMode}
-            >
-              <TextInput
-                style={[styles.input, !isEditMode && styles.readOnlyInput]}
-                value={formData.area}
-                editable={false}
-                placeholder="Select Area"
-              />
-              {isEditMode && (
-                <Image 
-                  source={require('../Assets/Images/drop.png')} 
-                  style={styles.dropdownArrow}
-                  resizeMode="contain"
-                />
-              )}
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Zip Code</Text>
             <TextInput
               style={[styles.input, !isEditMode && styles.readOnlyInput]}
-              value={formData.zipCode}
-              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, zipCode: text })) : undefined}
+              value={displayValues.zipCode}
+              onChangeText={isEditMode ? (text) => {
+                setFormData(prev => ({ ...prev, zipCode: text }));
+                setDisplayValues(prev => ({ ...prev, zipCode: text }));
+              } : undefined}
               placeholder="Enter zip code"
               keyboardType="numeric"
               editable={isEditMode}
@@ -641,8 +720,11 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.label}>Address</Text>
             <TextInput
               style={[styles.input, styles.textArea, !isEditMode && styles.readOnlyInput]}
-              value={formData.address}
-              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, address: text })) : undefined}
+              value={displayValues.address}
+              onChangeText={isEditMode ? (text) => {
+                setFormData(prev => ({ ...prev, address: text }));
+                setDisplayValues(prev => ({ ...prev, address: text }));
+              } : undefined}
               placeholder="Enter your address"
               multiline
               numberOfLines={3}
@@ -714,8 +796,11 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.label}>Date Of Birth (Optional)</Text>
             <TextInput
               style={[styles.input, !isEditMode && styles.readOnlyInput]}
-              value={formData.dateOfBirth}
-              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, dateOfBirth: text })) : undefined}
+              value={displayValues.dateOfBirth}
+              onChangeText={isEditMode ? (text) => {
+                setFormData(prev => ({ ...prev, dateOfBirth: text }));
+                setDisplayValues(prev => ({ ...prev, dateOfBirth: text }));
+              } : undefined}
               placeholder="DD/MM/YYYY"
               editable={isEditMode}
             />
@@ -874,44 +959,6 @@ const ProfileScreen = ({ navigation }) => {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Area Modal */}
-      <Modal
-        visible={areaModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setAreaModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setAreaModalVisible(false)}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' }}>
-            <View
-              style={{
-                backgroundColor: '#fff',
-                marginHorizontal: wp('10%'),
-                borderRadius: wp('2%'),
-                maxHeight: hp('50%'),
-              }}
-            >
-              <FlatList
-                data={areas}
-                keyExtractor={(item, index) => item.id || index.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={{
-                      paddingVertical: hp('1.5%'),
-                      paddingHorizontal: wp('4%'),
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#EAEAEA',
-                    }}
-                    onPress={() => handleAreaSelect(item)}
-                  >
-                    <Text style={{ fontSize: wp('4.5%'), color: '#333333' }}>{item.name}</Text>
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
     </SafeAreaView>
   );
 };

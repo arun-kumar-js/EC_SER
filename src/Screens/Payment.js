@@ -19,6 +19,8 @@ import { getWalletBalance } from '../Fuctions/UserDataService';
 import { placeOrder } from '../Fuctions/OrderService';
 import { clearCart, fetchCartItems, getCartSummary } from '../Fuctions/CartService';
 import { createBillPlzBill, createBillPlzBillDirect, testBillPlzAPI } from '../Fuctions/BillPlzService';
+import { getStoreSettings } from '../Fuctions/StoreSettingsService';
+import { getDeliveryMethods } from '../Fuctions/DeliveryMethodService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 
@@ -44,6 +46,29 @@ const PaymentScreen = ({ route }) => {
     total: 0,
     taxable_amount: 0
   });
+  const [storeSettings, setStoreSettings] = useState({
+    tax: 0,
+    delivery_charge: 0,
+    currency: '₹',
+    currency_symbol: '₹',
+    min_order_amount: 0,
+    free_delivery_amount: 0,
+    app_name: 'EC Services',
+    support_number: '',
+    support_email: '',
+    whatsapp_number: '',
+    gst_no: '',
+    address: '',
+    system_timezone: 'Asia/Kuala_Lumpur',
+    is_refer_earn_on: false,
+    refer_earn_bonus: 0,
+    refer_earn_method: 'percentage',
+    max_refer_earn_amount: 0,
+    min_refer_earn_order_amount: 0
+  });
+  const [deliveryMethods, setDeliveryMethods] = useState([]);
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState(null);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   // Get checkout data from route params
   const checkoutData = route.params || {};
@@ -52,6 +77,93 @@ const PaymentScreen = ({ route }) => {
   console.log('=== PAYMENT SCREEN CHECKOUT DATA ===');
   console.log('Selected Address:', checkoutData.selectedAddress);
   console.log('Delivery Method:', checkoutData.deliveryMethod);
+
+  // Load store settings and delivery methods dynamically
+  const loadStoreSettings = async () => {
+    try {
+      setIsLoadingSettings(true);
+      
+      // Load store settings
+      const storeSettingsResult = await getStoreSettings();
+      if (storeSettingsResult.success && storeSettingsResult.data) {
+        const settings = storeSettingsResult.data;
+        setStoreSettings({
+          tax: parseFloat(settings.tax) || 0,
+          delivery_charge: parseFloat(settings.delivery_charge) || 0,
+          currency: settings.currency || '₹',
+          currency_symbol: settings.currency || '₹',
+          min_order_amount: parseFloat(settings.min_amount) || 0,
+          free_delivery_amount: parseFloat(settings.free_delivery_amount) || 0,
+          app_name: settings.app_name || 'EC Services',
+          support_number: settings.support_number || '',
+          support_email: settings.support_email || '',
+          whatsapp_number: settings.whatsapp_number || '',
+          gst_no: settings.gst_no || '',
+          address: settings.address || '',
+          system_timezone: settings.system_timezone || 'Asia/Kuala_Lumpur',
+          is_refer_earn_on: settings['is-refer-earn-on'] === '1',
+          refer_earn_bonus: parseFloat(settings['refer-earn-bonus']) || 0,
+          refer_earn_method: settings['refer-earn-method'] || 'percentage',
+          max_refer_earn_amount: parseFloat(settings['max-refer-earn-amount']) || 0,
+          min_refer_earn_order_amount: parseFloat(settings['min-refer-earn-order-amount']) || 0
+        });
+        console.log('✅ Store settings loaded:', settings);
+      } else {
+        console.log('❌ Failed to load store settings, using fallback values');
+        // Use fallback values when API fails
+        setStoreSettings({
+          tax: 8, // 8% tax as per your API response
+          delivery_charge: 5, // 5 delivery charge as per your API response
+          currency: '₹',
+          currency_symbol: '₹',
+          min_order_amount: 100,
+          free_delivery_amount: 0,
+          app_name: 'EC Services',
+          support_number: '+6013-2439343',
+          support_email: 'rrk@ecservices.com.my',
+          whatsapp_number: '+60 13-2439343',
+          gst_no: 'IG27061622050',
+          address: 'NO.3,JALAN INAI 5,SEK BB3,BANDAR BUKIT BERUTUNG ,48300 RAWANG,',
+          system_timezone: 'Asia/Kuala_Lumpur',
+          is_refer_earn_on: true,
+          refer_earn_bonus: 5,
+          refer_earn_method: 'percentage',
+          max_refer_earn_amount: 110,
+          min_refer_earn_order_amount: 100
+        });
+      }
+
+      // Load delivery methods
+      const deliveryMethodsResult = await getDeliveryMethods();
+      if (deliveryMethodsResult.success && deliveryMethodsResult.data) {
+        const methods = Array.isArray(deliveryMethodsResult.data) 
+          ? deliveryMethodsResult.data 
+          : Object.values(deliveryMethodsResult.data);
+        setDeliveryMethods(methods);
+        
+        // Set default delivery method if available
+        if (methods.length > 0) {
+          setSelectedDeliveryMethod(methods[0]);
+        }
+        console.log('✅ Delivery methods loaded:', methods);
+      }
+    } catch (error) {
+      console.error('❌ Error loading store settings:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load store settings. Using defaults.',
+      });
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
+  // Load store settings on component mount
+  useEffect(() => {
+    loadStoreSettings();
+  }, []);
+
   console.log('Store Settings:', checkoutData.storeSettings);
   console.log('User:', checkoutData.user);
 
@@ -82,9 +194,16 @@ const PaymentScreen = ({ route }) => {
         }, 0);
         console.log('Calculated subtotal:', subtotal);
         
-        // Use checkout data for delivery charge and tax if available, otherwise use defaults
-        const deliveryCharge = checkoutData.totals?.deliveryCharge || checkoutData.storeSettings?.delivery_charge;
-        const taxRate = (checkoutData.storeSettings?.tax) / 100; // Convert percentage to decimal
+        // Use dynamic store settings for calculations
+        const baseDeliveryCharge = storeSettings.delivery_charge || 0;
+        const freeDeliveryThreshold = storeSettings.free_delivery_amount || 0;
+        
+        // Check if order qualifies for free delivery
+        const deliveryCharge = (subtotal >= freeDeliveryThreshold && freeDeliveryThreshold > 0) 
+          ? 0 
+          : baseDeliveryCharge;
+        
+        const taxRate = (storeSettings.tax || 0) / 100; // Convert percentage to decimal
         const taxableAmount = subtotal;
         const tax = taxableAmount * taxRate;
         const total = subtotal + deliveryCharge + tax;
@@ -125,6 +244,13 @@ const PaymentScreen = ({ route }) => {
       });
     }
   };
+
+  // Recalculate totals when store settings change
+  useEffect(() => {
+    if (!isLoadingSettings && cartItems.length > 0) {
+      loadCartData();
+    }
+  }, [storeSettings, isLoadingSettings]);
 
   // Refresh cart data when screen comes into focus
   useFocusEffect(

@@ -32,28 +32,41 @@ const CheckOutScreen = ({ route }) => {
   const [availableDeliveryOptions, setAvailableDeliveryOptions] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [storeSettings, setStoreSettings] = useState({
-    tax: 0, // Default tax percentage
-    delivery_charge: 0, // Default delivery charge
+    tax: 0,
+    delivery_charge: 0,
+    currency: '₹',
+    currency_symbol: '₹',
+    min_order_amount: 0,
+    free_delivery_amount: 0,
+    app_name: 'EC Services',
+    support_number: '',
+    support_email: '',
+    whatsapp_number: '',
+    gst_no: '',
+    address: '',
+    system_timezone: 'Asia/Kuala_Lumpur',
+    is_refer_earn_on: false,
+    refer_earn_bonus: 0,
+    refer_earn_method: 'percentage',
+    max_refer_earn_amount: 0,
+    min_refer_earn_order_amount: 0
   });
 
   // Get selected address from route params
-  const selectedAddress = route.params?.selectedAddress || {
-    name: 'Veeramani',
-    address: 'No 23, 5th street, little mount, Saidapet, Chennai - 600015',
-    mobile: '9176123456',
-    email: 'veeramani23@gmail.com',
-  };
+  const selectedAddress = route.params?.selectedAddress 
 
   const getItemPrice = item => {
     // Try different possible price fields
-    const price =
-      item.price?.replace('RM', '') ||
+    let priceStr = item.price || 
       item.product_price ||
       (item.product_variants && item.product_variants[0]?.product_price) ||
       (item.variants && item.variants[0]?.product_price) ||
-      0;
-
-    return parseFloat(price) || 0;
+      '0';
+    
+    // Remove common currency symbols
+    priceStr = priceStr.toString().replace(/[₹$€£¥RM]/g, '').trim();
+    
+    return parseFloat(priceStr) || 0;
   };
 
   const calculateTotals = () => {
@@ -61,11 +74,32 @@ const CheckOutScreen = ({ route }) => {
       const price = getItemPrice(item);
       return sum + price * (item.quantity || 1);
     }, 0);
+    
+    console.log('=== CALCULATE TOTALS DEBUG ===');
+    console.log('Current storeSettings:', storeSettings);
+    console.log('Subtotal:', subtotal);
+    
+    // Use dynamic store settings for calculations
+    const baseDeliveryCharge = storeSettings.delivery_charge || 0;
+    const freeDeliveryThreshold = storeSettings.free_delivery_amount || 0;
+    
+    console.log('Base delivery charge:', baseDeliveryCharge);
+    console.log('Free delivery threshold:', freeDeliveryThreshold);
+    
+    // Check if order qualifies for free delivery
+    const deliveryCharge = (subtotal >= freeDeliveryThreshold && freeDeliveryThreshold > 0) 
+      ? 0 
+      : baseDeliveryCharge;
+    
     const taxPercentage = parseFloat(storeSettings.tax) / 100; // Convert percentage to decimal
     const tax = subtotal * taxPercentage;
-    const taxableAmount = subtotal+tax;
-    const deliveryCharge = parseFloat(storeSettings.delivery_charge) || 0;
+    const taxableAmount = subtotal + tax;
     const total = taxableAmount + deliveryCharge - promoDiscount;
+
+    console.log('Tax percentage:', taxPercentage);
+    console.log('Tax amount:', tax);
+    console.log('Delivery charge:', deliveryCharge);
+    console.log('Total:', total);
 
     return {
       taxableAmount,
@@ -79,11 +113,15 @@ const CheckOutScreen = ({ route }) => {
 
   const totals = calculateTotals();
 
-  const deliveryOptions = [
-    { id: 'standard', name: 'Standard Delivery (2-3 days)', price: 0 },
-    { id: 'express', name: 'Express Delivery (1 day)', price: 50 },
-    { id: 'same_day', name: 'Same Day Delivery', price: 100 },
-  ];
+  // Force re-render when store settings change
+  const [forceUpdate, setForceUpdate] = useState(0);
+  
+  useEffect(() => {
+    console.log('Store settings changed, forcing update');
+    setForceUpdate(prev => prev + 1);
+  }, [storeSettings]);
+
+  
 
   // Load user data and delivery methods on component mount
   useEffect(() => {
@@ -108,10 +146,55 @@ const CheckOutScreen = ({ route }) => {
 
         // Load store settings
         const settingsResult = await getStoreSettings();
+        console.log('=== STORE SETTINGS DEBUG ===');
+        console.log('Settings Result:', settingsResult);
         if (settingsResult.success && settingsResult.data) {
+          const settings = settingsResult.data;
+          console.log('Raw Settings:', settings);
+          const newSettings = {
+            tax: parseFloat(settings.tax) || 0,
+            delivery_charge: parseFloat(settings.delivery_charge) || 0,
+            currency: settings.currency || '₹',
+            currency_symbol: settings.currency || '₹',
+            min_order_amount: parseFloat(settings.min_amount) || 0,
+            free_delivery_amount: parseFloat(settings.free_delivery_amount) || 0,
+            app_name: settings.app_name || 'EC Services',
+            support_number: settings.support_number || '',
+            support_email: settings.support_email || '',
+            whatsapp_number: settings.whatsapp_number || '',
+            gst_no: settings.gst_no || '',
+            address: settings.address || '',
+            system_timezone: settings.system_timezone || 'Asia/Kuala_Lumpur',
+            is_refer_earn_on: settings['is-refer-earn-on'] === '1',
+            refer_earn_bonus: parseFloat(settings['refer-earn-bonus']) || 0,
+            refer_earn_method: settings['refer-earn-method'] || 'percentage',
+            max_refer_earn_amount: parseFloat(settings['max-refer-earn-amount']) || 0,
+            min_refer_earn_order_amount: parseFloat(settings['min-refer-earn-order-amount']) || 0
+          };
+          console.log('✅ Processed Store Settings:', newSettings);
+          setStoreSettings(newSettings);
+        } else {
+          console.log('❌ Failed to load store settings, using fallback values');
+          // Use fallback values when API fails
           setStoreSettings({
-            tax: settingsResult.data.tax || 8,
-            delivery_charge: settingsResult.data.delivery_charge || 5,
+            tax: 8, // 8% tax as per your API response
+            delivery_charge: 5, // 5 delivery charge as per your API response
+            currency: '₹',
+            currency_symbol: '₹',
+            min_order_amount: 100,
+            free_delivery_amount: 0,
+            app_name: 'EC Services',
+            support_number: '+6013-2439343',
+            support_email: 'rrk@ecservices.com.my',
+            whatsapp_number: '+60 13-2439343',
+            gst_no: 'IG27061622050',
+            address: 'NO.3,JALAN INAI 5,SEK BB3,BANDAR BUKIT BERUTUNG ,48300 RAWANG,',
+            system_timezone: 'Asia/Kuala_Lumpur',
+            is_refer_earn_on: true,
+            refer_earn_bonus: 5,
+            refer_earn_method: 'percentage',
+            max_refer_earn_amount: 110,
+            min_refer_earn_order_amount: 100
           });
         }
 
@@ -164,6 +247,22 @@ const CheckOutScreen = ({ route }) => {
             // If in_persion_delivery is not available, set the first available option
             setDeliveryMethod(availableOptions[0].name);
           }
+        } else {
+          console.log('❌ Failed to load delivery methods, using fallback');
+          // Use fallback delivery methods
+          const fallbackMethods = {
+            in_persion_delivery: '1',
+            Delivery_by_courier: '0',
+            storepickup: '0',
+            dunzo: '0'
+          };
+          setDeliveryMethods(fallbackMethods);
+          setAvailableDeliveryOptions([{
+            id: 'in_person',
+            name: 'IN PERSON DELIVERY',
+            price: 0,
+          }]);
+          setDeliveryMethod('IN PERSON DELIVERY');
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -377,7 +476,7 @@ const CheckOutScreen = ({ route }) => {
                 >
                   <Text style={styles.deliveryOptionText}>{option.name}</Text>
                   <Text style={styles.deliveryOptionPrice}>
-                    {option.price > 0 ? `RM ${option.price}` : 'FREE'}
+                    {option.price > 0 ? `${storeSettings.currency_symbol} ${option.price}` : 'FREE'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -405,10 +504,10 @@ const CheckOutScreen = ({ route }) => {
               </Text>
               <Text style={styles.tableCell}>{item.quantity || 1}</Text>
               <Text style={styles.tableCell}>
-                RM {getItemPrice(item).toFixed(2)}
+                {storeSettings.currency_symbol} {getItemPrice(item).toFixed(2)}
               </Text>
               <Text style={styles.tableCell}>
-                RM {(getItemPrice(item) * (item.quantity || 1)).toFixed(2)}
+                {storeSettings.currency_symbol} {(getItemPrice(item) * (item.quantity || 1)).toFixed(2)}
               </Text>
             </View>
           ))}
@@ -418,7 +517,7 @@ const CheckOutScreen = ({ route }) => {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
               <Text style={styles.summaryValue}>
-                RM {totals.subtotal.toFixed(2)}
+                {storeSettings.currency_symbol} {totals.subtotal.toFixed(2)}
               </Text>
             </View>
             <View style={styles.summaryRow}>
@@ -426,27 +525,27 @@ const CheckOutScreen = ({ route }) => {
                 Tax ({storeSettings.tax}%)
               </Text>
               <Text style={styles.summaryValue}>
-                + RM {totals.tax.toFixed(2)}
+                + {storeSettings.currency_symbol} {totals.tax.toFixed(2)}
               </Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Taxable Amount</Text>
               <Text style={styles.summaryValue}>
-                RM {totals.taxableAmount.toFixed(2)}
+                {storeSettings.currency_symbol} {totals.taxableAmount.toFixed(2)}
               </Text>
             </View>
             {promoApplied && promoDiscount > 0 && (
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Promo Discount</Text>
                 <Text style={[styles.summaryValue, styles.discountValue]}>
-                  - RM {promoDiscount.toFixed(2)}
+                  - {storeSettings.currency_symbol} {promoDiscount.toFixed(2)}
                 </Text>
               </View>
             )}
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Delivery Charge</Text>
               <Text style={styles.summaryValue}>
-                RM {totals.deliveryCharge.toFixed(1)}
+                {storeSettings.currency_symbol} {totals.deliveryCharge.toFixed(1)}
               </Text>
             </View>
           </View>
@@ -458,7 +557,7 @@ const CheckOutScreen = ({ route }) => {
         <View style={styles.totalSection}>
           <Icon name="information-circle-outline" size={20} color="#666" />
           <Text style={styles.totalText}>
-            Total : RM {totals.total.toFixed(2)}
+            Total : {storeSettings.currency_symbol} {totals.total.toFixed(2)}
           </Text>
         </View>
         <TouchableOpacity

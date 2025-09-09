@@ -22,6 +22,16 @@ export const getTimeSlots = async () => {
     console.log('Response Headers:', response.headers);
     console.log('Full Response Data:', response.data);
 
+    // Check if response is a string error message
+    if (typeof response.data === 'string' && response.data.includes('Something Wrong')) {
+      console.error('❌ Error: Time slots API returned error message');
+      console.error('Error Message:', response.data);
+      return {
+        success: false,
+        data: [],
+      };
+    }
+
     if (response.data && response.data.error === false) {
       console.log('✅ Success: Time slots fetched successfully');
       return {

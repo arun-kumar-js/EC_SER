@@ -16,14 +16,23 @@ export const getStoreSettings = async () => {
     const response = await axios.post(`${API_BASE_URL}/settings.php`, formData);
 
     console.log('=== STORE SETTINGS API RESPONSE ===');
-   
     console.log('Full Response Data:', response.data);
 
-    if ( response.data.error === false) {
+    // Check if response is a string error message
+    if (typeof response.data === 'string' && response.data.includes('Something Wrong')) {
+      console.error('❌ Error: Store settings API returned error message');
+      console.error('Error Message:', response.data);
+      return {
+        success: false,
+        data: null,
+      };
+    }
+
+    if (response.data.error === false) {
       console.log('✅ Success: Store settings fetched successfully');
       return {
         success: true,
-        data: response.data.data || response.data,
+        data: response.data.settings || response.data.data || response.data,
       };
     } else {
       console.error('❌ Error: Store settings API returned error');
