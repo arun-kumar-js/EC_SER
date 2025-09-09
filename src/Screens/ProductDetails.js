@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
@@ -9,44 +9,37 @@ import {
   SafeAreaView,
   StatusBar,
   Share,
+  Alert,
 } from 'react-native';
-import Toast from 'react-native-toast-message';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import CartButton from '../Fuctions/CartButton';
-import { toggleWishlistItem, checkWishlistStatus } from '../Fuctions/WishlistService';
-import CartIcon from '../Components/CartIcon';
-const renderHtmlToText = html => {
-  // Simple parser to remove HTML tags and render as plain text with line breaks
+
+const ProductDescription = ({ html }) => {
   const regex = /<\/?[^>]+(>|$)/g;
   const text = html.replace(regex, '');
-  // Split by line breaks or paragraphs if needed
   const lines = text
     .split('\n')
     .map(line => line.trim())
     .filter(line => line.length > 0);
 
-  return lines.map((line, index) => (
-    <Text key={index} style={styles.productDescription}>
-      {line}
-    </Text>
-  ));
-};
-
-const ProductDescription = ({ html }) => {
-  if (!html) return null;
-  return <View>{renderHtmlToText(html)}</View>;
+  return (
+    <>
+      {lines.map((line, index) => (
+        <Text key={index} style={styles.productDescription}>
+          {line}
+        </Text>
+      ))}
+    </>
+  );
 };
 
 const ProductDetails = ({ route, navigation }) => {
   const { product } = route.params;
   console.log(product);
-
-  const [isInWishlist, setIsInWishlist] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const originalPrice = product.variants[0].price;
   const discountedPrice = product.variants[0].discounted_price;
@@ -57,54 +50,19 @@ const ProductDetails = ({ route, navigation }) => {
     );
   }
 
-  // Check if product is in wishlist when component mounts
-  useEffect(() => {
-    checkInitialWishlistStatus();
-  }, []);
-
-  const checkInitialWishlistStatus = async () => {
-    try {
-      const inWishlist = await checkWishlistStatus(product.id);
-      setIsInWishlist(inWishlist);
-    } catch (error) {
-      console.error('Error checking wishlist status:', error);
-    }
-  };
-
-  const handleToggleWishlist = async () => {
-    if (isLoading) return;
-    
-    setIsLoading(true);
-    try {
-      const result = await toggleWishlistItem(product);
-      if (result.success) {
-        setIsInWishlist(result.action === 'added');
-        // Show toast or alert
-        Alert.alert('Success', result.message);
-      } else {
-        Alert.alert('Error', result.message);
-      }
-    } catch (error) {
-      console.error('Error toggling wishlist:', error);
-      Alert.alert('Error', 'Failed to update wishlist. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleShare = async () => {
     try {
-      const productUrl = `https://spiderekart.in/product/${product.id}`;
-      const shareMessage = `Check out this amazing product: ${product.name}\n\nPrice: ₹${discountedPrice || originalPrice}\n\n${productUrl}`;
-      
-      const result = await Share.share({
-        message: shareMessage,
+      const shareContent = {
+        message: `Check out this amazing product: ${product.name}\n\nPrice: $${discountedPrice || originalPrice}${discountPercentage > 0 ? ` (${discountPercentage}% OFF!)` : ''}\n\n${product.description ? product.description.replace(/<[^>]*>/g, '').substring(0, 100) + '...' : 'Great product!'}\n\nDownload our app to see more!`,
         title: product.name,
-        url: productUrl,
-      });
+      };
 
+      const result = await Share.share(shareContent);
+      
       if (result.action === Share.sharedAction) {
         console.log('Product shared successfully');
+      } else if (result.action === Share.dismissedAction) {
+        console.log('Share dismissed');
       }
     } catch (error) {
       console.error('Error sharing product:', error);
@@ -122,11 +80,11 @@ const ProductDetails = ({ route, navigation }) => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Product Details</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-            <CartIcon size={wp('7%')} color="white" />
+            <Ionicons name="cart-outline" size={wp('7%')} color="white" />
           </TouchableOpacity>
         </View>
 
-        <View contentContainerStyle={styles.scrollContentContainer}>
+        <ScrollView contentContainerStyle={styles.scrollContentContainer}>
           <Image
             source={{
               uri:
@@ -142,7 +100,7 @@ const ProductDetails = ({ route, navigation }) => {
                 <View style={styles.ratingContainer}>
                   <View style={styles.ratingBadge}>
                     <Text style={styles.ratingText}>
-                      {product.rating ? Number(product.rating).toFixed(2) : '0.00'}
+                      {product.rating || 0.0}
                     </Text>
                     <Text style={styles.star}> ★ </Text>
                   </View>
@@ -154,7 +112,6 @@ const ProductDetails = ({ route, navigation }) => {
               <TouchableOpacity 
                 style={styles.shareIconContainer}
                 onPress={handleShare}
-                activeOpacity={0.7}
               >
                 <Ionicons
                   name="share-social-outline"
@@ -167,8 +124,15 @@ const ProductDetails = ({ route, navigation }) => {
             {/* <Text>Price Type: {product.price_type}</Text> */}
           </View>
           {/* Price display with original price struck through and centered if discounted */}
-          <View style={styles.priceSection}>
-            <View style={styles.priceRow}>
+          <View style={{ alignItems: 'center', marginTop: hp('1.5%') }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+              }}
+            >
               <Text style={styles.discountedPrice}>RM {discountedPrice}</Text>
               {originalPrice > discountedPrice && (
                 <Text style={styles.originalPrice}>RM {originalPrice}</Text>
@@ -189,15 +153,16 @@ const ProductDetails = ({ route, navigation }) => {
           </View>
           {/* Quantity box and Add button row */}
           <View style={styles.cartRow}>
-            <View style={[styles.quantityBox]}>
+            <View style={[styles.quantityBox, { flex: 2 }]}>
               <Text style={styles.quantity}>
                 Qty: {product?.variants?.[0]?.measurement_unit_name || 'N/A'}
               </Text>
             </View>
-            <View style={[styles.cartButtonContainer]}>
+            <View style={{ flex: 1, marginLeft: 12 }}>
               <CartButton
                 product={product}
                 initialQuantity={0}
+                size="medium"
                 onChange={qty => {
                   console.log('Quantity changed:', qty);
                 }}
@@ -231,31 +196,18 @@ const ProductDetails = ({ route, navigation }) => {
               </Text>
             ) : null}
           </View>
-        </View>
+        </ScrollView>
         <View style={styles.footer}>
-          <TouchableOpacity 
-            style={[styles.saveButton, isInWishlist && styles.saveButtonActive]}
-            onPress={handleToggleWishlist}
-            disabled={isLoading}
-          >
-            <Ionicons 
-              name={isInWishlist ? "heart" : "heart-outline"} 
-              size={wp('6%')} 
-              color={isInWishlist ? "#fff" : "#F70D24"} 
-            />
-            <Text style={[
-              styles.saveButtonText,
-              isInWishlist && styles.saveButtonTextActive
-            ]}>
-              {isInWishlist ? 'Saved' : 'Save for later'}
-            </Text>
+          <TouchableOpacity style={styles.saveButton}>
+            <Ionicons name="heart-outline" size={wp('6%')} color="#F70D24" />
+            <Text style={{ color: '#F70D24' }}>Save for later</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.cartButton}
             onPress={() => navigation.navigate('Cart')}
           >
-           
-            <Text style={{ color: 'white', fontFamily: 'Montserrat-Bold' }}>Go to Cart</Text>
+            <Ionicons name="cart-outline" size={wp('6%')} color="white" />
+            <Text style={{ color: 'white' }}>Go to Cart</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -268,7 +220,7 @@ export default ProductDetails;
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-   // backgroundColor: 'red',
+    backgroundColor: 'white',
   },
   container: {
     flex: 1,
@@ -285,18 +237,17 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: 'white',
     fontSize: wp('4.5%'),
-    fontFamily: 'Montserrat-Bold',
+    fontWeight: 'bold',
   },
   scrollContentContainer: {
-    paddingBottom: hp('3%'), // Space for the fixed footer
+    paddingBottom: hp('10%'), // Space for the fixed footer
   },
   productImage: {
     width: '100%',
     height: hp('40%'),
     resizeMode: 'cover',
-    marginLeft: wp('1%'),
-    marginTop: hp('1%'),
-    marginRight: wp('41%'),
+    padding: wp('2%'),
+    paddingTop: hp('3%'),
     borderRadius: wp('2%'),
   },
   detailsContainer: {
@@ -304,7 +255,6 @@ const styles = StyleSheet.create({
     paddingTop: hp('2%'),
     paddingBottom: hp('1.5%'),
     backgroundColor: '#FFFFFF',
-    marginHorizontal: wp('3%'),
   },
   titleRow: {
     flexDirection: 'row',
@@ -318,7 +268,6 @@ const styles = StyleSheet.create({
     fontSize: wp('4.5%'),
     fontWeight: 'bold',
     color: '#D32F2F',
-    fontFamily: 'Montserrat-Bold',
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -353,31 +302,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEEBEE',
     justifyContent: 'center',
     alignItems: 'center',
-   marginLeft: wp('2.5%'),
-  },
-  priceSection: {
-    alignItems: 'center',
-    marginTop: hp('1.5%'),
-    marginHorizontal: wp('3%'),
+    marginLeft: wp('2.5%'),
   },
   priceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
+    alignItems: 'baseline',
+    marginTop: hp('1.5%'),
   },
   currentPrice: {
     fontSize: wp('7%'),
     fontWeight: 'bold',
     color: '#004D40',
-    fontFamily: 'Montserrat-Bold',
   },
   originalPrice: {
     fontSize: wp('3%'),
     color: '#757575',
     textDecorationLine: 'line-through',
     marginLeft: wp('2.5%'),
-    fontFamily: 'Montserrat-Regular',
   },
   discountBadge: {
     backgroundColor: '#4CAF50',
@@ -390,7 +331,6 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontSize: wp('3%'),
     fontWeight: 'bold',
-    fontFamily: 'Montserrat-Bold',
   },
   actionsRow: {
     flexDirection: 'row',
@@ -400,36 +340,43 @@ const styles = StyleSheet.create({
   quantitySelector: {
     flex: 1,
     backgroundColor: '#F5F5F5',
-    borderRadius: wp('2%'),
+    //borderRadius: wp('2%'),
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: hp('2%'),
     marginRight: wp('2.5%'),
   },
   quantityText: {
-    fontSize: wp('2%'),
+    fontSize: wp('4%'),
     color: '#616161',
   },
   addButton: {
-    flex: 1,
-    backgroundColor: '#F70D24',
+    width: wp('28%'),
+    height: hp('4.5%'),
+    opacity: 1,
+    paddingTop: hp('1%'),
+    paddingRight: wp('6%'),
+    paddingBottom: hp('1%'),
+    paddingLeft: wp('6%'),
+    marginRight: wp('2%'),
     borderRadius: wp('2%'),
+    backgroundColor: '#F70D24',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: hp('8%'),
   },
   addButtonText: {
-    color: 'white',
+    color: '#fff',
+    fontWeight: '600',
     fontSize: wp('4%'),
-    fontWeight: 'bold',
-    alignItems: 'center',
+    fontFamily: 'Montserrat-SemiBold',
+    borderRadius: wp('2%'),
+   paddingBottom: hp('5%'),
   },
   productDetailsSection: {
     paddingHorizontal: wp('4%'),
     paddingTop: hp('2.5%'),
     borderTopWidth: hp('0.8%'),
     borderTopColor: '#F5F5F5',
-    marginHorizontal: wp('3%'),
   },
   productDetailsTitle: {
     fontSize: wp('4.5%'),
@@ -447,7 +394,6 @@ const styles = StyleSheet.create({
     fontSize: wp('3.5%'),
     color: '#616161',
     lineHeight: hp('2.8%'),
-    fontFamily: 'Montserrat-Regular',
   },
   discountedPrice: {
     fontSize: wp('5.5%'),
@@ -455,7 +401,6 @@ const styles = StyleSheet.create({
     lineHeight: hp('2.8%'),
     marginLeft: wp('2%'),
     fontWeight: 'bold',
-    fontFamily: 'Montserrat-Bold',
   },
   footer: {
     position: 'absolute',
@@ -483,14 +428,6 @@ const styles = StyleSheet.create({
     fontSize: wp('4%'),
     fontWeight: 'bold',
     marginLeft: wp('2%'),
-    fontFamily: 'Montserrat-Bold',
-  },
-  saveButtonActive: {
-    backgroundColor: '#F70D24',
-    borderColor: '#F70D24',
-  },
-  saveButtonTextActive: {
-    color: '#fff',
   },
   cartButton: {
     flex: 0.5,
@@ -503,10 +440,9 @@ const styles = StyleSheet.create({
   },
   cartButtonText: {
     color: 'white',
-    fontSize: wp('4%'),
+    fontSize: wp('6%'),
     fontWeight: 'bold',
     marginLeft: wp('2%'),
-    fontFamily: 'Montserrat-Bold',
   },
   offerBadge: {
     backgroundColor: 'green',
@@ -523,26 +459,19 @@ const styles = StyleSheet.create({
   cartRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: hp('2%'),
+    marginTop: 10,
     justifyContent: 'space-between',
-    marginHorizontal: wp('4%'),
-    paddingVertical: hp('1%'),
+    marginHorizontal: wp('1%'),
   },
   quantityBox: {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F5F5F5',
-    height: hp('6%'),
+    height: hp('5%'),
     borderRadius: wp('2%'),
-    paddingHorizontal: wp('4%'),
-    marginRight: wp('3%'),
-  },
-  cartButtonContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   quantity: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#555',
   },
 });

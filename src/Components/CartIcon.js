@@ -1,45 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { fetchCartItems } from '../Fuctions/CartService';
-import { onCartUpdated, offCartUpdated } from '../Fuctions/cartEvents';
+import { useCart } from '../Context/CartContext';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 
 const CartIcon = ({ size = wp('6%'), color = '#fff', style = {} }) => {
-  const [cartCount, setCartCount] = useState(0);
-
-  useEffect(() => {
-    loadCartCount();
-    
-    // Listen for cart updates
-    const listener = () => loadCartCount();
-    onCartUpdated(listener);
-    
-    return () => {
-      offCartUpdated(listener);
-    };
-  }, []);
-
-  const loadCartCount = async () => {
-    try {
-      const cartItems = await fetchCartItems();
-      const totalCount = cartItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
-      setCartCount(totalCount);
-    } catch (error) {
-      console.error('Error loading cart count:', error);
-    }
-  };
+  const { totalQuantity } = useCart();
 
   return (
     <View style={[styles.container, style]}>
       <Icon name="cart-outline" size={size} color={color} />
-      {cartCount > 0 && (
+      {totalQuantity > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>
-            {cartCount > 99 ? '99+' : cartCount}
+            {totalQuantity > 99 ? '99+' : totalQuantity}
           </Text>
         </View>
       )}

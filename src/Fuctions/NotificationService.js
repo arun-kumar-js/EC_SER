@@ -7,16 +7,19 @@ export const getNotificationList = async (userId) => {
     console.log('=== FETCHING NOTIFICATION LIST ===');
     console.log('User ID:', userId);
     
-    const requestData = {
-      member_id: userId.toString()
-    };
+    const formdata = new FormData();
+    formdata.append('get-notifications', '1');
+    formdata.append('accesskey', '90336');
+    formdata.append('member_id', userId.toString());
 
-    console.log('Request Data:', requestData);
+    console.log('Request URL:', `${API_BASE_URL}sections.php`);
+    console.log('Request Data:', formdata);
 
-    const response = await axios.post(`${API_BASE_URL}api/notification_list`, requestData, {
+    const response = await axios.post(`${API_BASE_URL}sections.php`, formdata, {
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'multipart/form-data',
       },
+      timeout: 10000, // 10 second timeout
     });
 
     console.log('=== NOTIFICATION API RESPONSE ===');
@@ -54,15 +57,17 @@ export const markNotificationAsRead = async (notificationId, userId) => {
     console.log('Notification ID:', notificationId);
     console.log('User ID:', userId);
 
-    const requestData = {
-      notification_id: notificationId,
-      member_id: userId.toString()
-    };
+    const formdata = new FormData();
+    formdata.append('mark-notification-read', '1');
+    formdata.append('accesskey', '90336');
+    formdata.append('notification_id', notificationId.toString());
+    formdata.append('member_id', userId.toString());
 
-    const response = await axios.post(`${API_BASE_URL}api/mark_notification_read`, requestData, {
+    const response = await axios.post(`${API_BASE_URL}sections.php`, formdata, {
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'multipart/form-data',
       },
+      timeout: 10000, // 10 second timeout
     });
 
     console.log('=== MARK NOTIFICATION READ RESPONSE ===');
@@ -95,14 +100,16 @@ export const getNotificationCount = async (userId) => {
     console.log('=== FETCHING NOTIFICATION COUNT ===');
     console.log('User ID:', userId);
 
-    const requestData = {
-      member_id: userId.toString()
-    };
+    const formdata = new FormData();
+    formdata.append('get-notification-count', '1');
+    formdata.append('accesskey', '90336');
+    formdata.append('member_id', userId.toString());
 
-    const response = await axios.post(`${API_BASE_URL}api/notification_count`, requestData, {
+    const response = await axios.post(`${API_BASE_URL}sections.php`, formdata, {
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'multipart/form-data',
       },
+      timeout: 10000, // 10 second timeout
     });
 
     console.log('=== NOTIFICATION COUNT RESPONSE ===');

@@ -6,8 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Image,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const TermsAndCondition = ({ navigation }) => {
   return (
@@ -18,7 +18,11 @@ const TermsAndCondition = ({ navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={24} color="#fff" />
+          <Image 
+            source={require('../Assets/Images/Arrow.png')} 
+            style={styles.backArrow} 
+            resizeMode="contain" 
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Terms & Conditions</Text>
       </View>
@@ -174,6 +178,12 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 16,
+    padding: 8,
+  },
+  backArrow: {
+    width: 24,
+    height: 24,
+    tintColor: '#fff',
   },
   headerTitle: {
     color: '#fff',

@@ -18,6 +18,8 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
+  verticalScale,
+  moderateScale,
 } from 'react-native-responsive-screen';
 import { 
   TEXT_STYLES, 
@@ -29,6 +31,8 @@ import {
   CONTAINER_STYLES,
   SHADOWS 
 } from '../styles/globalStyles';
+import { sendOTP } from '../Fuctions/OTPService';
+import Toast from 'react-native-toast-message';
 
 const LoginUpdated = () => {
   const [mobileNumber, setMobileNumber] = useState('');
@@ -43,13 +47,39 @@ const LoginUpdated = () => {
 
     setLoading(true);
 
-    // Simulate API call delay
-    setTimeout(() => {
+    try {
+      console.log('=== SENDING OTP ===');
+      console.log('Mobile Number:', mobileNumber);
+      
+      const result = await sendOTP(mobileNumber, '+60');
+      
+      if (result.success) {
+        Toast.show({
+          type: 'success',
+          text1: 'OTP Sent',
+          text2: result.message,
+          position: 'top',
+        });
+        navigation.navigate('OtpScreen', { mobileNumber });
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: result.message,
+          position: 'top',
+        });
+      }
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Network error. Please try again.',
+        position: 'top',
+      });
+    } finally {
       setLoading(false);
-      // Mock successful OTP send
-      Alert.alert('Success', 'OTP has been sent successfully.');
-      navigation.navigate('OtpScreen', { mobileNumber });
-    }, 1000);
+    }
   };
 
   return (
@@ -88,7 +118,7 @@ const LoginUpdated = () => {
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Mobile Number</Text>
                 <View style={styles.inputWrapper}>
-                  <Text style={styles.countryCode}>+91</Text>
+                  <Text style={styles.countryCode}>+60</Text>
                   <TextInput
                     style={styles.textInput}
                     placeholder="Enter your mobile number"

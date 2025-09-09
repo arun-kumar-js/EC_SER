@@ -30,7 +30,7 @@ export const getTimeSlots = async () => {
       };
     } else {
       console.error('❌ Error: Time slots API returned error');
-      console.error('Error Message:', response.data.message);
+      console.error('Error Message:', response.data?.message || 'Unknown error');
       return {
         success: false,
         data: [],

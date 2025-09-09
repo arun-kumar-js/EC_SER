@@ -5,6 +5,6 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["**/*.ts", "**/*.tsx", "src/Screens/AddAddress.js", "src/Screens/AddressPage.js", "src/Screens/BottomTap/More.JS", "src/Screens/ProductDetails.js", "src/Screens/BottomTap/WishList.js"],
+  "include": ["**/*.ts", "**/*.tsx", "src/Screens/AddAddress.js", "src/Screens/AddressPage.js", "src/Screens/BottomTap/More.JS", "src/Screens/ProductDetails.js", "src/Screens/BottomTap/WishList.js", "src/Screens/OtpScreen.js"],
   "exclude": ["**/node_modules", "**/Pods"]
 }

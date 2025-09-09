@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -18,7 +19,11 @@ const PrivacyPolicy = ({ navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={24} color="#fff" />
+          <Image 
+            source={require('../Assets/Images/Arrow.png')} 
+            style={styles.backArrow} 
+            resizeMode="contain" 
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Privacy Policy</Text>
       </View>
@@ -195,6 +200,12 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 16,
+    padding: 8,
+  },
+  backArrow: {
+    width: 24,
+    height: 24,
+    tintColor: '#fff',
   },
   headerTitle: {
     color: '#fff',

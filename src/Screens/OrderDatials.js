@@ -1,26 +1,128 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Image, StatusBar, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TextInput, TouchableOpacity, Image, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { API_BASE_URL } from '../config/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getOrderDetails } from '../Fuctions/OrderService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const OrderDatials = ({ route, navigation }) => {
-  // Get data from navigation params
-  const { orderData: paramsOrderData } = route.params || {};
-  
- 
-
-  // Use params data directly
-  const [orderData, setOrderData] = useState(paramsOrderData || {});
+  const { orderId, orderData: paramsOrderData } = route.params || {};
+  const [orderData, setOrderData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [review, setReview] = useState('');
   const [rating, setRating] = useState(0);
   const [isCancelling, setIsCancelling] = useState(false);
-
-  // Update orderData when params change
+  
+  console.log("=== ORDER DETAILS DEBUG ===");
+  console.log("orderData:", orderData);
+  console.log("user_name:", orderData?.user_name);
+  console.log("email:", orderData?.email);
+  console.log("mobile:", orderData?.mobile);
+  console.log("address:", orderData?.address);
+  console.log("delivery_method:", orderData?.delivery_method);
+  console.log("payment_method:", orderData?.payment_method);
+  console.log("customer_details:", orderData?.customer_details);
+  // Handle both direct orderData and orderId cases
   useEffect(() => {
-    if (paramsOrderData) {
-      setOrderData(paramsOrderData);
-    }
-  }, [paramsOrderData]);
+    const hydrateFromService = async () => {
+      try {
+        console.log('=== ORDER DETAILS FETCH DEBUG ===');
+        console.log('Order ID from params:', orderId);
+        console.log('Order Data from params:', paramsOrderData);
+        
+        // If orderData is passed directly, use it
+        if (paramsOrderData) {
+          console.log('Using passed order data directly');
+          // Ensure individual fields are extracted for easier access
+          const processedOrderData = {
+            ...paramsOrderData,
+            user_name: paramsOrderData.user_name || paramsOrderData.customer_details?.name ,
+            mobile: paramsOrderData.mobile || paramsOrderData.customer_details?.mobile,
+            address: paramsOrderData.address || paramsOrderData.customer_details?.address,
+            email: paramsOrderData.email || paramsOrderData.customer_details?.email,
+          };
+          setOrderData(processedOrderData);
+          setLoading(false);
+          return;
+        }
+        
+        // Otherwise, fetch from API using orderId
+        if (orderId) {
+          setLoading(true);
+          const storedUser = await AsyncStorage.getItem('userData');
+          const user = storedUser ? JSON.parse(storedUser) : null;
+          const userId = user?.user_id || user?.id;
+          
+          console.log('Stored user:', user);
+          console.log('User ID:', userId);
+          
+          if (userId) {
+            console.log('Fetching order details for user:', userId, 'order:', orderId);
+            const result = await getOrderDetails(userId, orderId);
+            console.log('Order details API result:', result);
+            
+            if (result.success && result.order) {
+              console.log('Order found, mapping data...');
+              // Map order to expected shape for UI
+              const order = result.order;
+              const mapped = {
+                order_id: order.id,
+                id: order.id,
+                order_date: order.date_added,
+                date_added: order.date_added,
+                active_status: order.active_status || order.status,
+                items_amount: order.final_total || order.total,
+                delivery_charge: order.delivery_charge || '0.0',
+                tax: order.tax || '0.0',
+                total: order.total || order.final_total,
+                grand_total: order.final_total || order.total,
+                delivery_time: order.delivery_time,
+                delivery_method: order.delivery_method,
+                payment_method: order.payment_method,
+                customer_details: {
+                  name: order.name || 'Customer',
+                  mobile: order.mobile,
+                  address: order.address,
+                  email: order.email,
+                },
+                // Extract individual fields for easier access
+                user_name: order.user_name || order.name || 'Customer',
+                mobile: order.mobile,
+                address: order.address,
+                email: order.email,
+                products: (order.items || []).map(item => ({
+                  product_id: item.product_id || item.id,
+                  name: item.name,
+                  image: item.image,
+                  quantity: String(item.quantity || 1),
+                  price: String(item.discounted_price || item.price || 0),
+                  sub_total: String(item.sub_total || item.price || 0),
+                  measurement: item.measurement,
+                  unit: item.unit,
+                  product_variant_id: item.product_variant_id || item.product_id || item.id,
+                  discounted_price: String(item.discounted_price || item.price || 0),
+                })),
+                status: order.status || [],
+              };
+              setOrderData(mapped);
+              console.log('Order data set successfully:', mapped);
+            } else {
+              console.log('Order not found in API result:', result);
+            }
+          } else {
+            console.log('No user ID found, cannot fetch order details');
+          }
+        } else {
+          console.log('No order ID provided');
+        }
+      } catch (e) {
+        console.log('Failed to load order details:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    hydrateFromService();
+  }, [orderId, paramsOrderData]);
 
   // Function to check if order cannot be cancelled
   const isOrderNonCancellable = (status) => {
@@ -29,6 +131,7 @@ const OrderDatials = ({ route, navigation }) => {
       'out_for_delivery', 
       'delivered',
       'cancelled',
+      'cancel',
       'completed',
       'in_transit',
       'confirmed_and_shipped'
@@ -108,13 +211,35 @@ const OrderDatials = ({ route, navigation }) => {
   useEffect(() => {
     console.log('=== ORDER DETAILS PARAMS DEBUG ===');
     console.log('Route params:', route.params);
-    console.log('Params orderData:', paramsOrderData);
+    console.log('Params orderData:', route.params?.orderData);
     console.log('Current orderData state:', orderData);
-    console.log('Has params orderData:', !!paramsOrderData);
-    console.log('Order ID from params:', paramsOrderData?.order_id);
-    console.log('Customer name from params:', paramsOrderData?.customer_details?.name);
+    console.log('Has params orderData:', !!route.params?.orderData);
+    console.log('Order ID from params:', route.params?.orderData?.order_id);
+    console.log('Customer name from params:', route.params?.orderData?.customer_details?.name);
     console.log('===================================');
-  }, [route.params, orderData, paramsOrderData]);
+  }, [route.params, orderData]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#e60023" />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color="#e60023" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!orderData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#e60023" />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: '#333' }}>Order not found.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -138,38 +263,61 @@ const OrderDatials = ({ route, navigation }) => {
 
         {/* Order Header */}
         <View style={styles.section}>
-          <View style={styles.row}>
-            <Text style={styles.label}>Ordered ID:</Text>
-            <Text style={styles.value}>{orderData.order_id || 'N/A'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Order Date:</Text>
-            <Text style={styles.value}>{orderData.order_date || 'N/A'}</Text>
-          </View>
+          {orderData.id && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Order ID:</Text>
+              <Text style={styles.value}>{orderData.id}</Text>
+            </View>
+          )}
+          {orderData.date_added && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Order Date:</Text>
+              <Text style={styles.value}>{orderData.date_added}</Text>
+            </View>
+          )}
+          {orderData.active_status && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Order Status:</Text>
+              <Text style={[styles.value, { 
+                color: orderData.active_status === 'cancelled' ? '#dc3545' : 
+                       orderData.active_status === 'delivered' ? '#28a745' : '#007bff' 
+              }]}>{orderData.active_status}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.divider} />
 
         {/* Product Details */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Products ({orderData.products?.length || 0})</Text>
-          {orderData.products && orderData.products.length > 0 ? (
-            orderData.products.map((product, index) => (
+          <Text style={styles.sectionTitle}>Products ({orderData.items?.length || orderData.products?.length || 0})</Text>
+          {(orderData.items || orderData.products) && (orderData.items?.length > 0 || orderData.products?.length > 0) ? (
+            (orderData.items || orderData.products).map((product, index) => (
               <View key={`${product.product_id}-${index}`} style={styles.productContainer}>
                 {product.image && (
                   <Image source={{ uri: product.image }} style={styles.productImage} />
                 )}
                 <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{product.name || 'Product Name'}</Text>
-                  <Text style={styles.quantity}>Qty. {product.quantity || '1'}</Text>
-                  <Text style={styles.price}>₹{product.price || '0'}</Text>
-                  <Text style={styles.measurement}>{product.measurement || '1'} {product.unit || 'unit'}</Text>
+                  {product.name && (
+                    <Text style={styles.productName}>{product.name}</Text>
+                  )}
+                  {product.quantity && (
+                    <Text style={styles.quantity}>Qty. {product.quantity}</Text>
+                  )}
+                  {(product.price || product.discounted_price) && (
+                    <Text style={styles.price}>RM {product.discounted_price || product.price}</Text>
+                  )}
+                  {product.measurement && product.unit && (
+                    <Text style={styles.measurement}>{product.measurement} {product.unit}</Text>
+                  )}
+                  {product.sub_total && (
+                    <Text style={styles.subtotal}>Subtotal: RM {product.sub_total}</Text>
+                  )}
+                  {product.discount && product.discount !== '0' && (
+                    <Text style={styles.discount}>Discount: RM {product.discount}</Text>
+                  )}
                 </View>
-                {!isOrderNonCancellable(orderData.active_status) && (
-                  <TouchableOpacity style={styles.returnButton}>
-                    <Text style={styles.returnButtonText}>Cancel item</Text>
-                  </TouchableOpacity>
-                )}
+               
               </View>
             ))
           ) : (
@@ -181,10 +329,11 @@ const OrderDatials = ({ route, navigation }) => {
               <View style={styles.productInfo}>
                 <Text style={styles.productName}>{orderData.name || 'Product Name'}</Text>
                 <Text style={styles.quantity}>Qty. {orderData.quantity || '1'}</Text>
-                <Text style={styles.price}>₹{orderData.price || '0'}</Text>
+                <Text style={styles.price}>RM {orderData.price || '0'}</Text>
                 <Text style={styles.measurement}>{orderData.measurement || '1'} {orderData.unit || 'unit'}</Text>
               </View>
-              {!isOrderNonCancellable(orderData.active_status) && (
+              {!isOrderNonCancellable(orderData.active_status) && 
+               !['Cancelled', 'cancel', 'cancelled'].includes(orderData.active_status?.toLowerCase()) && (
                 <TouchableOpacity style={styles.returnButton}>
                   <Text style={styles.returnButtonText}>Cancel item</Text>
                 </TouchableOpacity>
@@ -198,26 +347,42 @@ const OrderDatials = ({ route, navigation }) => {
         {/* Price Details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Price Details</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Items Amount:</Text>
-            <Text style={styles.value}>₹{orderData.items_amount || orderData.sub_total || '0'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Delivery Charge:</Text>
-            <Text style={styles.value}>₹{orderData.delivery_charge || '0.0'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Tax:</Text>
-            <Text style={styles.value}>+ ₹{orderData.tax || '0.0'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Total:</Text>
-            <Text style={styles.value}>₹{orderData.total || orderData.sub_total || '0'}</Text>
-          </View>
-          <View style={[styles.row, styles.grandTotal]}>
-            <Text style={styles.grandTotalLabel}>Grand Total:</Text>
-            <Text style={styles.grandTotalValue}>₹{orderData.grand_total || orderData.sub_total || '0'}</Text>
-          </View>
+          {orderData.total && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Items Amount:</Text>
+              <Text style={styles.value}>RM {orderData.total}</Text>
+            </View>
+          )}
+          {orderData.delivery_charge && orderData.delivery_charge !== '0.00' && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Delivery Charge:</Text>
+              <Text style={styles.value}>RM {orderData.delivery_charge}</Text>
+            </View>
+          )}
+          {orderData.tax_amount && orderData.tax_amount !== '0.00' && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Tax:</Text>
+              <Text style={styles.value}>+ RM {orderData.tax_amount}</Text>
+            </View>
+          )}
+          {orderData.discount && orderData.discount !== '0' && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Discount:</Text>
+              <Text style={styles.value}>- RM {orderData.discount_rupees || orderData.discount}</Text>
+            </View>
+          )}
+          {orderData.promo_discount && orderData.promo_discount !== '0' && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Promo Discount:</Text>
+              <Text style={styles.value}>- RM {orderData.promo_discount}</Text>
+            </View>
+          )}
+          {orderData.final_total && (
+            <View style={[styles.row, styles.grandTotal]}>
+              <Text style={styles.grandTotalLabel}>Grand Total:</Text>
+              <Text style={styles.grandTotalValue}>RM {orderData.final_total}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.divider} />
@@ -228,24 +393,86 @@ const OrderDatials = ({ route, navigation }) => {
           <View style={styles.detailsContainer}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Name:</Text>
-              <Text style={styles.detailValue}>{orderData.customer_details?.name || 'N/A'}</Text>
+              <Text style={styles.detailValue}>{orderData.user_name || orderData.customer_details?.name || 'N/A'}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Mobile No:</Text>
-              <Text style={styles.detailValue}>{orderData.customer_details?.mobile || 'N/A'}</Text>
+              <Text style={styles.detailValue}>{orderData.mobile || orderData.customer_details?.mobile || 'N/A'}</Text>
+            </View>
+            {orderData.address && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Address:</Text>
+                <Text style={styles.detailValue}>{orderData.address}</Text>
+              </View>
+            )}
+            {orderData.email && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Email:</Text>
+                <Text style={styles.detailValue}>{orderData.email}</Text>
+              </View>
+            )}
+            {orderData.delivery_time && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Delivery Time:</Text>
+                <Text style={styles.detailValue}>{orderData.delivery_time}</Text>
+              </View>
+            )}
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Payment Method:</Text>
+              <Text style={styles.detailValue}>{orderData.payment_method || 'N/A'}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Address:</Text>
-              <Text style={styles.detailValue}>{orderData.customer_details?.address || 'N/A'}</Text>
+              <Text style={styles.detailLabel}>Delivery Method:</Text>
+              <Text style={styles.detailValue}>{orderData.delivery_method || 'N/A'}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Gmail:</Text>
-              <Text style={styles.detailValue}>{orderData.customer_details?.email || 'N/A'}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Delivery Time :</Text>
-              <Text style={styles.detailValue}>{orderData.delivery_time || 'N/A'}</Text>
-            </View>
+            {orderData.payment_status && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Payment Status:</Text>
+                <Text style={styles.detailValue}>{orderData.payment_status === '1' ? 'Paid' : 'Pending'}</Text>
+              </View>
+            )}
+            {orderData.delivery_boy_id && orderData.delivery_boy_id !== '0' && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Delivery Boy ID:</Text>
+                <Text style={styles.detailValue}>{orderData.delivery_boy_id}</Text>
+              </View>
+            )}
+            {orderData.courier && orderData.courier !== '0' && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Courier:</Text>
+                <Text style={styles.detailValue}>{orderData.courier}</Text>
+              </View>
+            )}
+            {orderData.notes && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Notes:</Text>
+                <Text style={styles.detailValue}>{orderData.notes}</Text>
+              </View>
+            )}
+            {orderData.promo_code && orderData.promo_code !== '-' && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Promo Code:</Text>
+                <Text style={styles.detailValue}>{orderData.promo_code}</Text>
+              </View>
+            )}
+            {orderData.loyalty_points && orderData.loyalty_points !== '0' && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Loyalty Points:</Text>
+                <Text style={styles.detailValue}>{orderData.loyalty_points}</Text>
+              </View>
+            )}
+            {orderData.earned_loyalty_points && orderData.earned_loyalty_points !== '0' && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Earned Points:</Text>
+                <Text style={styles.detailValue}>{orderData.earned_loyalty_points}</Text>
+              </View>
+            )}
+            {orderData.wallet_balance && orderData.wallet_balance !== '0' && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Wallet Balance:</Text>
+                <Text style={styles.detailValue}>RM {orderData.wallet_balance}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -291,11 +518,11 @@ const OrderDatials = ({ route, navigation }) => {
             <View style={styles.statusItem}>
               <View style={[styles.statusCircle, 
                 ['Delivered', 'Order Delivered'].includes(orderData.active_status) ? styles.activeStatusCircle : 
-                orderData.active_status === 'Cancelled' ? styles.cancelledStatusCircle : styles.inactiveStatusCircle]} />
+                ['Cancelled', 'cancel', 'cancelled'].includes(orderData.active_status?.toLowerCase()) ? styles.cancelledStatusCircle : styles.inactiveStatusCircle]} />
               <Text style={styles.statusLabel}>
-                {orderData.active_status === 'Cancelled' ? 'Product Cancelled' : 'Order Delivered'}
+                {['Cancelled', 'cancel', 'cancelled'].includes(orderData.active_status?.toLowerCase()) ? 'Order Cancelled' : 'Order Delivered'}
               </Text>
-              {(['Delivered', 'Order Delivered'].includes(orderData.active_status) || orderData.active_status === 'Cancelled') && (
+              {(['Delivered', 'Order Delivered'].includes(orderData.active_status) || ['Cancelled', 'cancel', 'cancelled'].includes(orderData.active_status?.toLowerCase())) && (
                 <Text style={styles.statusDate}>{orderData.date_added || orderData.order_date || 'N/A'}</Text>
               )}
             </View>
@@ -318,8 +545,9 @@ const OrderDatials = ({ route, navigation }) => {
             <Text style={styles.reviewOrderButtonText}>REVIEW</Text>
           </TouchableOpacity>
         ) : (
-          // Only show cancel button if order can be cancelled
-          !isOrderNonCancellable(orderData.active_status) && (
+          // Only show cancel button if order can be cancelled and is not already cancelled
+          !isOrderNonCancellable(orderData.active_status) && 
+          !['Cancelled', 'cancel', 'cancelled'].includes(orderData.active_status?.toLowerCase()) && (
             <TouchableOpacity 
               style={[styles.cancelOrderButton, isCancelling && styles.cancelOrderButtonDisabled]}
               onPress={() => {
@@ -339,12 +567,10 @@ const OrderDatials = ({ route, navigation }) => {
                   ]
                 );
               }}
-              disabled={isCancelling || orderData.active_status === 'Cancelled'}
+              disabled={isCancelling}
             >
               <Text style={styles.cancelOrderButtonText}>
-                {isCancelling ? 'CANCELLING...' : 
-                 orderData.active_status === 'Cancelled' ? 'ORDER CANCELLED' : 
-                 'CANCEL ORDER?'}
+                {isCancelling ? 'CANCELLING...' : 'CANCEL ORDER?'}
               </Text>
             </TouchableOpacity>
           )
@@ -500,6 +726,20 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
     fontFamily: 'Montserrat-Regular',
+  },
+  subtotal: {
+    fontSize: 14,
+    color: '#E53935',
+    fontWeight: 'bold',
+    marginTop: 4,
+    fontFamily: 'Montserrat-Bold',
+  },
+  discount: {
+    fontSize: 12,
+    color: '#28a745',
+    fontWeight: 'bold',
+    marginTop: 2,
+    fontFamily: 'Montserrat-Bold',
   },
   returnButton: {
     backgroundColor: '#dc3545',

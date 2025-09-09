@@ -10,39 +10,41 @@ import {
   increaseProductQuantity,
   decreaseProductQuantity,
 } from './CartService';
-import { onCartUpdated, offCartUpdated } from './cartEvents';
+import { useCart } from '../Context/CartContext';
+import { CART_BUTTON_CONFIG } from '../config/CartButtonConfig';
 
-const CartButton = ({ product, initialQuantity = 0, onChange, tax = 0 }) => {
-  const [quantity, setQuantity] = useState(initialQuantity);
+const CartButton = ({ product, initialQuantity = 0, onChange, tax = 0, size = 'medium' }) => {
+  // Ensure size is valid
+  const validSizes = ['small', 'medium', 'large'];
+  const currentSize = validSizes.includes(size) ? size : 'medium';
+  
+  // Safety check for product
+  if (!product) {
+    return null;
+  }
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [customQuantity, setCustomQuantity] = useState('');
+  const { getProductQuantity, refreshCart } = useCart();
+  
+  const productId = product?.id ?? product?.product_id;
+  const quantity = productId ? getProductQuantity(productId) : 0;
+
+  // Get size-specific styles
+  const getSizeStyles = () => {
+    return CART_BUTTON_CONFIG.sizes[currentSize] || CART_BUTTON_CONFIG.sizes.medium;
+  };
+
+  const getTypographyStyles = () => {
+    return CART_BUTTON_CONFIG.typography[currentSize] || CART_BUTTON_CONFIG.typography.medium;
+  };
+
+  const sizeStyles = getSizeStyles();
+  const typographyStyles = getTypographyStyles();
 
   useEffect(() => {
-    const fetchQuantity = async () => {
-      try {
-        const productId = product.id ?? product.product_id;
-        if (!productId) {
-          console.warn('Invalid product id:', product);
-          return;
-        }
-        const currentQuantity = await getProductQuantity(productId);
-        setQuantity(currentQuantity);
-        onChange?.(currentQuantity);
-      } catch (error) {
-        console.error('Error fetching product quantity:', error);
-      }
-    };
-
-    fetchQuantity();
-
-    // Listen for cart updates
-    const listener = () => fetchQuantity();
-    onCartUpdated(listener);
-
-    return () => {
-      offCartUpdated(listener);
-    };
-  }, [product, onChange]);
+    // Notify parent component of quantity changes
+    onChange?.(quantity);
+  }, [quantity, onChange]);
 
   const updateQuantity = async newQty => {
     try {
@@ -51,9 +53,8 @@ const CartButton = ({ product, initialQuantity = 0, onChange, tax = 0 }) => {
         newQty = 1;
       }
 
-      const updatedQty = await updateCartItem(product, newQty);
-      setQuantity(updatedQty);
-      onChange?.(updatedQty);
+      await updateCartItem(product, newQty);
+      // The context will automatically update and trigger re-renders
     } catch (error) {
       console.warn('Failed to update cart item:', error);
     }
@@ -61,9 +62,8 @@ const CartButton = ({ product, initialQuantity = 0, onChange, tax = 0 }) => {
 
   const handleIncrease = async () => {
     try {
-      const newQty = await increaseProductQuantity(product);
-      setQuantity(newQty);
-      onChange?.(newQty);
+      await increaseProductQuantity(product);
+      // The context will automatically update and trigger re-renders
     } catch (error) {
       console.warn('Failed to increase quantity:', error);
     }
@@ -71,9 +71,8 @@ const CartButton = ({ product, initialQuantity = 0, onChange, tax = 0 }) => {
 
   const handleDecrease = async () => {
     try {
-      const newQty = await decreaseProductQuantity(product);
-      setQuantity(newQty);
-      onChange?.(newQty);
+      await decreaseProductQuantity(product);
+      // The context will automatically update and trigger re-renders
     } catch (error) {
       console.warn('Failed to decrease quantity:', error);
     }
@@ -114,29 +113,101 @@ const CartButton = ({ product, initialQuantity = 0, onChange, tax = 0 }) => {
   return (
     <View style={styles.cartButtonWrapper}>
       {quantity > 0 ? (
-        <View style={styles.cartContainer}>
+        <View style={[
+          styles.cartContainer,
+          {
+            borderRadius: wp(sizeStyles.cartContainer.borderRadius),
+            height: hp(sizeStyles.cartContainer.height),
+            width: wp(sizeStyles.cartContainer.width),
+            paddingHorizontal: wp(sizeStyles.cartContainer.paddingHorizontal),
+          }
+        ]}>
           <TouchableOpacity
-            style={styles.quantityButton}
+            style={[
+              styles.quantityButton,
+              {
+                paddingHorizontal: wp(sizeStyles.quantityButton.paddingHorizontal),
+                paddingVertical: hp(sizeStyles.quantityButton.paddingVertical),
+                minWidth: wp(sizeStyles.quantityButton.minWidth),
+                minHeight: hp(sizeStyles.quantityButton.minHeight),
+              }
+            ]}
             onPress={handleDecrease}
           >
-            <Text style={styles.quantityButtonText}>-</Text>
+            <Text style={[
+              styles.quantityButtonText,
+              {
+                fontSize: wp(typographyStyles.quantityButtonText.fontSize),
+              }
+            ]}>-</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.countBox} onPress={handleQuantityPress}>
-            <Text style={styles.countText}>{quantity}</Text>
+          <TouchableOpacity 
+            style={[
+              styles.countBox,
+              {
+                borderRadius: wp(sizeStyles.countBox.borderRadius),
+                paddingHorizontal: wp(sizeStyles.countBox.paddingHorizontal),
+                paddingVertical: hp(sizeStyles.countBox.paddingVertical),
+                marginLeft: wp(sizeStyles.countBox.marginHorizontal),
+                marginRight: wp(sizeStyles.countBox.marginHorizontal),
+                minWidth: wp(sizeStyles.countBox.minWidth),
+              }
+            ]} 
+            onPress={handleQuantityPress}
+          >
+            <Text style={[
+              styles.countText,
+              {
+                fontSize: wp(typographyStyles.countText.fontSize),
+              }
+            ]}>{quantity}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.quantityButton}
+            style={[
+              styles.quantityButton,
+              {
+                paddingHorizontal: wp(sizeStyles.quantityButton.paddingHorizontal),
+                paddingVertical: hp(sizeStyles.quantityButton.paddingVertical),
+                minWidth: wp(sizeStyles.quantityButton.minWidth),
+                minHeight: hp(sizeStyles.quantityButton.minHeight),
+              }
+            ]}
             onPress={handleIncrease}
           >
-            <Text style={styles.quantityButtonText}>+</Text>
+            <Text style={[
+              styles.quantityButtonText,
+              {
+                fontSize: wp(typographyStyles.quantityButtonText.fontSize),
+              }
+            ]}>+</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity
-          style={styles.addButton}
+          style={[
+            styles.addButton,
+            {
+              borderRadius: wp(sizeStyles.addButton.borderRadius),
+              paddingVertical: hp(sizeStyles.addButton.paddingVertical),
+              paddingHorizontal: wp(sizeStyles.addButton.paddingHorizontal),
+              width: wp(sizeStyles.addButton.width),
+              height: hp(sizeStyles.addButton.height),
+              minHeight: hp(sizeStyles.addButton.minHeight),
+              minWidth: wp(sizeStyles.addButton.minWidth),
+            }
+          ]}
           onPress={() => updateQuantity(1)}
         >
-          <Text style={styles.addButtonText}>Add</Text>
+          <Text style={[
+            styles.addButtonText,
+            {
+              fontSize: wp(typographyStyles.addButtonText.fontSize),
+              textAlign: 'center',
+              includeFontPadding: false,
+              textAlignVertical: 'center',
+              letterSpacing: 0.5,
+            }
+          ]}>ADD</Text>
         </TouchableOpacity>
       )}
 
@@ -184,69 +255,57 @@ const CartButton = ({ product, initialQuantity = 0, onChange, tax = 0 }) => {
   );
 };
 
+
 const styles = StyleSheet.create({
   cartButtonWrapper: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: hp('6%'),
+    minHeight: hp(CART_BUTTON_CONFIG.spacing.wrapper.minHeight),
   },
   cartContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F70D24',
-    borderRadius: wp('2%'),
-    height: hp('6%'),
-    width: wp('30%'),
-    paddingHorizontal: wp('1%'),
+    backgroundColor: CART_BUTTON_CONFIG.colors.primary,
+    marginLeft: wp(CART_BUTTON_CONFIG.spacing.container.marginLeft),
+    marginRight: wp(CART_BUTTON_CONFIG.spacing.container.marginRight),
   },
   quantityButton: {
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('1.2%'),
-    width: wp('12%'),
-    height: hp('6%'),
+    backgroundColor: CART_BUTTON_CONFIG.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   quantityButtonText: {
-    color: '#fff',
+    color: CART_BUTTON_CONFIG.colors.white,
     fontWeight: 'bold',
-    fontSize: wp('6%'),
-    fontFamily: 'Montserrat-Bold',
+    fontFamily: 'System',
   },
   countBox: {
-    backgroundColor: '#fff',
-    borderRadius: wp('1%'),
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('1.5%'),
-    marginHorizontal: wp('2%'),
+    backgroundColor: CART_BUTTON_CONFIG.colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: wp('12%'),
-    minHeight: hp('6%'),
   },
   countText: {
-    color: '#F70D24',
+    color: CART_BUTTON_CONFIG.colors.text,
     fontWeight: 'bold',
-    fontSize: wp('5%'),
-    fontFamily: 'Montserrat-Bold',
+    fontFamily: 'System',
     textAlign: 'center',
   },
   addButton: {
-    backgroundColor: '#F70D24',
-    borderRadius: wp('2%'),
+    backgroundColor: CART_BUTTON_CONFIG.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: hp('1.2%'),
-    paddingHorizontal: wp('4%'),
-    width: wp('30%'),
-    height: hp('6%'),
+    marginLeft: wp(CART_BUTTON_CONFIG.spacing.container.marginLeft),
+    marginRight: wp(CART_BUTTON_CONFIG.spacing.container.marginRight),
   },
   addButtonText: {
-    color: 'white',
-    fontSize: wp('4%'),
+    color: CART_BUTTON_CONFIG.colors.white,
     fontWeight: 'bold',
-    fontFamily: 'Montserrat-Bold',
+    fontFamily: 'System',
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    letterSpacing: 0.5,
   },
   // Modal styles
   modalOverlay: {

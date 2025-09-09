@@ -11,56 +11,35 @@ import {
   ImageBackground,
   Modal,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, CommonActions } from '@react-navigation/native';
 import { useCallback } from 'react';
-import { onCartUpdated, offCartUpdated } from '../Fuctions/cartEvents';
 import {
-  fetchCartItems,
   increaseProductQuantity,
   decreaseCartItemQuantity,
   removeProductFromCart,
 } from '../Fuctions/CartService';
+import { useCart } from '../Context/CartContext';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 
 const Cart = ({ navigation }) => {
-  const [cartItems, setCartItems] = useState([]);
+  const { cartItems, refreshCart } = useCart();
   const [modalVisible, setModalVisible] = useState(false);
   const [itemToRemove, setItemToRemove] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
-      const fetchItems = async () => {
-        try {
-          const items = await fetchCartItems();
-          setCartItems(items);
-        } catch (error) {
-          console.error('Failed to fetch cart items:', error);
-        }
-      };
-      fetchItems();
-      const subscription = onCartUpdated(fetchItems);
-      return () => {
-        offCartUpdated(subscription);
-      };
-    }, []),
+      // Refresh cart data when screen comes into focus
+      refreshCart();
+    }, [refreshCart])
   );
 
   const increaseQuantity = async item => {
     try {
-      const newQty = await increaseProductQuantity(item);
-      const updatedItems = cartItems.map(cartItem => {
-        if (
-          cartItem.id === item.id ||
-          cartItem.product_id === item.product_id
-        ) {
-          return { ...cartItem, quantity: newQty };
-        }
-        return cartItem;
-      });
-      setCartItems(updatedItems);
+      await increaseProductQuantity(item);
+      // The context will automatically update and trigger re-renders
     } catch (error) {
       console.error('Failed to update cart item:', error);
     }
@@ -68,17 +47,8 @@ const Cart = ({ navigation }) => {
 
   const decreaseQuantity = async item => {
     try {
-      const newQty = await decreaseCartItemQuantity(item);
-      const updatedItems = cartItems.map(cartItem => {
-        if (
-          cartItem.id === item.id ||
-          cartItem.product_id === item.product_id
-        ) {
-          return { ...cartItem, quantity: newQty };
-        }
-        return cartItem;
-      });
-      setCartItems(updatedItems);
+      await decreaseCartItemQuantity(item);
+      // The context will automatically update and trigger re-renders
     } catch (error) {
       console.error('Failed to update cart item:', error);
     }
@@ -88,13 +58,7 @@ const Cart = ({ navigation }) => {
     console.log('Remove button pressed for item:', item);
     try {
       await removeProductFromCart(item);
-      const updatedItems = cartItems.filter(
-        cartItem =>
-          cartItem.id !== item.id &&
-          cartItem.product_id !== item.product_id,
-      );
-      console.log('Updated cart items:', updatedItems);
-      setCartItems(updatedItems);
+      // The context will automatically update and trigger re-renders
       console.log('Item removed successfully');
     } catch (error) {
       console.error('Failed to remove cart item:', error);
@@ -247,7 +211,11 @@ const Cart = ({ navigation }) => {
                 }
               }}
             >
-              <Text style={styles.headerBackText}>{'\u2190'}</Text>
+              <Image 
+                source={require('../Assets/Images/Arrow.png')} 
+                style={styles.backArrow} 
+                resizeMode="contain" 
+              />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Cart</Text>
             <View style={{ width: wp('9%') }} />
@@ -279,22 +247,36 @@ const Cart = ({ navigation }) => {
                 RM{totalPrice ? totalPrice.toFixed(2) : '0.00'}
               </Text>
             </View>
-            <View style={styles.checkoutFooter}>
-              <Text style={styles.checkoutText}>
-                Total {itemCount} Items RM
-                {totalPrice ? totalPrice.toFixed(2) : '0.00'}
-              </Text>
-              
-              <TouchableOpacity
-                style={[styles.checkoutButton, {flexDirection: "row",gap:20}]}
-                onPress={() => navigation.navigate('AddressPage')}
-              >
-                <Text style={styles.checkoutText}>Checkout</Text>
-                <View style={styles.checkoutCircle}>
-                  <Text style={styles.checkoutArrow}>{'>'}</Text>
+            <TouchableOpacity
+              style={[
+                styles.checkoutButton,
+                cartItems.length === 0 && styles.disabledButton
+              ]}
+              onPress={() => {
+                if (cartItems.length === 0) {
+                  Alert.alert(
+                    'Empty Cart',
+                    'Please add items to your cart before proceeding to checkout.',
+                    [{ text: 'OK' }]
+                  );
+                  return;
+                }
+                navigation.dispatch(CommonActions.navigate('AddressPage'));
+              }}
+              disabled={cartItems.length === 0}
+            >
+              <View style={styles.checkoutLeftSection}>
+                <Text style={styles.checkoutTotalText}>
+                  Total {itemCount} Item{itemCount !== 1 ? 's' : ''} RM {totalPrice ? totalPrice.toFixed(2) : '0.00'}
+                </Text>
+              </View>
+              <View style={styles.checkoutRightSection}>
+                <Text style={styles.checkoutButtonText}>CHECKOUT</Text>
+                <View style={styles.checkoutIcon}>
+                  <Text style={styles.checkoutArrow}>→</Text>
                 </View>
-              </TouchableOpacity>
-            </View>
+              </View>
+            </TouchableOpacity>
           </View>
         </SafeAreaView>
       </ImageBackground>
@@ -344,11 +326,10 @@ const styles = StyleSheet.create({
     width: wp('9%'),
     height: hp('5%'),
   },
-  headerBackText: {
-    color: '#fff',
-    fontSize: wp('6%'),
-    fontWeight: 'bold',
-    fontFamily: 'Montserrat-Bold',
+  backArrow: {
+    width: wp('5%'),
+    height: hp('2.5%'),
+    tintColor: '#fff',
   },
   itemContainer: {
     flexDirection: 'row',
@@ -478,15 +459,16 @@ const styles = StyleSheet.create({
     color: '#333',
     fontFamily: 'Montserrat-Bold',
   },
-  checkoutFooter: {
+  checkoutButton: {
     flexDirection: 'row',
-    //justifyContent: 'space-evenly',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: hp('1%'),
-    //paddingHorizontal: wp('5%'),
-    marginHorizontal: hp('1%'),
-    borderRadius: wp('4%'),
-    backgroundColor: 'red',
+    backgroundColor: '#F70D24',
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('4%'),
+    marginHorizontal: wp('2%'),
+    borderRadius: wp('3%'),
+    marginTop: hp('1%'),
   },
   totalContainer: {
     flexDirection: 'row',
@@ -511,34 +493,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: 'red',
+    paddingVertical: hp('1%'),
   },
-  checkoutText: {
+  checkoutLeftSection: {
+    flex: 1,
+  },
+  checkoutTotalText: {
     fontFamily: 'Montserrat-SemiBold',
     fontSize: wp('4%'),
     fontWeight: '600',
     color: '#fff',
-    backgroundColor: '#F70D24',
-    
-    paddingTop: hp('1%'),
-    paddingHorizontal: wp('3%'),
-    borderRadius: wp('1%'),
-    textAlign: 'center',
   },
-  checkoutCircle: {
+  checkoutRightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2%'),
+  },
+  checkoutButtonText: {
+    fontFamily: 'Montserrat-Bold',
+    fontSize: wp('4.5%'),
+    fontWeight: 'bold',
+    color: '#fff',
+    textTransform: 'uppercase',
+  },
+  checkoutIcon: {
     backgroundColor: '#fff',
-    width: wp('7%'),
-    height: wp('7%'),
-    borderRadius: wp('3.5%'),
+    width: wp('6%'),
+    height: wp('6%'),
+    borderRadius: wp('3%'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: wp('2%'),
   },
-
   checkoutArrow: {
-    color: 'red',
+    color: '#F70D24',
     fontSize: wp('4%'),
     fontWeight: 'bold',
-    fontFamily: 'Montserrat-Bold',
   },
   modalOverlay: {
     flex: 1,
@@ -598,6 +587,10 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: '#fff',
     paddingVertical: hp('3%'),
+  },
+  disabledButton: {
+    opacity: 0.5,
+    backgroundColor: '#ccc',
   },
 });
 

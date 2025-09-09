@@ -31,12 +31,29 @@ const MyOrders = ({ navigation }) => {
 
       // Get user data from AsyncStorage
       const storedUser = await AsyncStorage.getItem('userData');
+      console.log('=== MY ORDERS DEBUG ===');
+      console.log('Stored user data:', storedUser);
+      console.log('Current orders state:', orders);
+      
+      // Check all AsyncStorage keys for debugging
+      const allKeys = await AsyncStorage.getAllKeys();
+      console.log('All AsyncStorage keys:', allKeys);
+      
+      // Check if there's any user-related data
+      for (const key of allKeys) {
+        if (key.includes('user') || key.includes('User')) {
+          const value = await AsyncStorage.getItem(key);
+          console.log(`Key: ${key}, Value:`, value);
+        }
+      }
+      
       if (storedUser) {
         const userObj = JSON.parse(storedUser);
         setUser(userObj);
 
         const userId = userObj.user_id || userObj.id;
         console.log('Fetching orders for user ID:', userId);
+        console.log('User object:', userObj);
 
         if (userId) {
           const result = await getUserOrders(userId);
@@ -49,6 +66,13 @@ const MyOrders = ({ navigation }) => {
             result.orders.forEach(order => {
               console.log('=== ORDER DATA ===');
               console.log('Order:', order);
+              console.log('Address fields available:', {
+                address: order.address,
+                delivery_address: order.delivery_address,
+                shipping_address: order.shipping_address,
+                mobile: order.mobile,
+                phone: order.phone
+              });
 
               const orderData = {
                 orderId: order.id,
@@ -57,8 +81,8 @@ const MyOrders = ({ navigation }) => {
                 orderTotal: parseFloat(order.final_total || order.total || 0),
                 paymentMethod: order.payment_method || 'N/A',
                 deliveryMethod: order.delivery_method || 'Standard',
-                address: order.address || 'N/A',
-                mobile: order.mobile || 'N/A',
+                address: order.address || order.delivery_address || order.shipping_address || 'N/A',
+                mobile: order.mobile || order.phone || 'N/A',
                 deliveryTime: order.delivery_time || 'N/A',
                 rawOrderData: order,
                 products: []
@@ -99,68 +123,14 @@ const MyOrders = ({ navigation }) => {
             setOrders(groupedOrders);
           } else {
             console.error('Failed to fetch orders:', result.message);
-            // For demo purposes, add sample data if API fails
-            const sampleOrders = [
-              {
-                orderId: '402',
-                orderDate: '05-09-2025',
-                orderStatus: 'Processing',
-                orderTotal: 150.0,
-                paymentMethod: 'Cash on Delivery',
-                deliveryMethod: 'Standard',
-                address: 'Sample Address',
-                mobile: '1234567890',
-                products: [
-                  {
-                    productId: 'sample1',
-                    productName: 'MALLIGAI GARLAND 2FT',
-                    productImage: 'https://via.placeholder.com/150x150/FFFFFF/000000?text=Garland',
-                    quantity: 1,
-                    variant: '1 pc',
-                    price: 50.0,
-                  },
-                  {
-                    productId: 'sample2',
-                    productName: 'LIMAU FRUIT',
-                    productImage: 'https://via.placeholder.com/150x150/90EE90/000000?text=Fruit',
-                    quantity: 1,
-                    variant: '5 pc',
-                    price: 60.0,
-                  },
-                  {
-                    productId: 'sample3',
-                    productName: 'MULLAI',
-                    productImage: 'https://via.placeholder.com/150x150/98FB98/000000?text=Flower',
-                    quantity: 1,
-                    variant: '2 m',
-                    price: 40.0,
-                  },
-                ],
-              },
-              {
-                orderId: '401',
-                orderDate: '05-09-2025',
-                orderStatus: 'Shipped',
-                orderTotal: 50.0,
-                paymentMethod: 'Online Payment',
-                deliveryMethod: 'Express',
-                address: 'Sample Address 2',
-                mobile: '9876543210',
-                products: [
-                  {
-                    productId: 'sample4',
-                    productName: 'MALLIGAI GARLAND 2FT',
-                    productImage: 'https://via.placeholder.com/150x150/FFFFFF/000000?text=Garland',
-                    quantity: 1,
-                    variant: '1 pc',
-                    price: 50.0,
-                  },
-                ],
-              },
-            ];
-            setOrders(sampleOrders);
+            setOrders([]);
           }
+        } else {
+          console.log('No user ID found in stored user data');
         }
+      } else {
+        console.log('No user data found in AsyncStorage');
+        setOrders([]);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -217,15 +187,16 @@ const MyOrders = ({ navigation }) => {
   };
 
   const formatImageUrl = imageUrl => {
-    if (!imageUrl) return null;
+    if (!imageUrl) {
+      return null;
+    }
 
     // If it's already a complete URL, return as is
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       return imageUrl;
     }
 
-    // If it's a relative path, you might need to prepend your base URL
-    // Replace 'YOUR_BASE_URL' with your actual image server URL
+    // If it's a relative path, prepend the base URL
     if (
       imageUrl.startsWith('/') ||
       imageUrl.startsWith('images/') ||
@@ -268,62 +239,16 @@ const MyOrders = ({ navigation }) => {
   }, []);
 
   const handleViewDetails = order => {
-    console.log('Navigating to OrderDatials with data:', order);
+    console.log('=== MY ORDERS NAVIGATION DEBUG ===');
+    console.log('Raw order data:', order);
+    console.log('Order ID being passed:', order.orderId || order.id);
 
-    // Navigate to OrderDetails screen with order data
+    // Navigate to OrderDetails screen with only order ID
     navigation.navigate('OrderDatials', {
-      orderData: {
-        // Order information
-        order_id: order.orderId,
-        order_date: order.orderDate,
-        date_added: order.orderDate,
-        active_status: order.orderStatus,
-        id: order.orderId,
-        
-        // Order total and pricing
-        items_amount: order.orderTotal.toString(),
-        delivery_charge: '0.0',
-        tax: '0.0',
-        total: order.orderTotal.toString(),
-        grand_total: order.orderTotal.toString(),
-        
-        // Customer details
-        customer_details: {
-          name: 'Customer',
-          mobile: order.mobile || 'N/A',
-          address: order.address || 'N/A',
-          email: 'customer@example.com',
-        },
-        
-        // Delivery information
-        delivery_time: order.deliveryTime || 'N/A',
-        delivery_method: order.deliveryMethod || 'Standard',
-        payment_method: order.paymentMethod || 'N/A',
-        
-        // Status
-        status: [[order.orderStatus, order.orderDate]],
-        rating: '0',
-        rating_desc: '',
-        
-        // Additional fields
-        discount: '0',
-        user_id: '1',
-        
-        // Products array for the order
-        products: order.products.map(product => ({
-          product_id: product.productId,
-          name: product.productName,
-          image: product.productImage,
-          quantity: product.quantity.toString(),
-          price: product.price.toString(),
-          sub_total: product.price.toString(),
-          measurement: product.variant ? product.variant.split(' ')[0] : '1',
-          unit: product.variant ? product.variant.split(' ').slice(1).join(' ') : 'unit',
-          product_variant_id: product.productId,
-          discounted_price: product.price.toString(),
-        })),
-      },
+      orderId: order.orderId || order.id
     });
+    
+    console.log('Passing only orderId to OrderDatials:', order.orderId || order.id);
   };
 
   const renderFilterTab = tab => (
@@ -366,42 +291,43 @@ const MyOrders = ({ navigation }) => {
           styles.productItem,
           index === order.products.length - 1 && styles.lastProductItem
         ]}>
-          <View style={styles.productImageContainer}>
+        <View style={styles.productImageContainer}>
             {formatImageUrl(product.productImage) ? (
-              <Image
+            <Image
                 source={{ uri: formatImageUrl(product.productImage) }}
-                style={styles.productImage}
-                resizeMode="contain"
-                onError={error => {
-                  console.log('Image load error:', error.nativeEvent.error);
-                  console.log(
-                    'Failed image URL:',
+              style={styles.productImage}
+              resizeMode="contain"
+              onError={error => {
+                console.log('Image load error:', error.nativeEvent.error);
+                console.log(
+                  'Failed image URL:',
                     formatImageUrl(product.productImage),
-                  );
-                }}
-                onLoad={() => {
-                  console.log(
-                    'Image loaded successfully:',
+                );
+              }}
+              onLoad={() => {
+                console.log(
+                  'Image loaded successfully:',
                     formatImageUrl(product.productImage),
-                  );
-                }}
-              />
-            ) : (
-              <View style={styles.placeholderImage}>
+                );
+              }}
+            />
+          ) : (
+            <View style={styles.placeholderImage}>
                 <Text style={styles.placeholderIconText}>📷</Text>
-                <Text style={styles.placeholderText}>No Image</Text>
-              </View>
-            )}
-          </View>
+              <Text style={styles.placeholderText}>No Image</Text>
+            </View>
+          )}
+          
+        </View>
 
-          <View style={styles.productDetails}>
+        <View style={styles.productDetails}>
             <Text style={styles.productName}>{product.productName}</Text>
             <Text style={styles.productQuantity}>Qty. {product.quantity}</Text>
             {product.variant && (
               <Text style={styles.productVariant}>{product.variant}</Text>
-            )}
-          </View>
+          )}
         </View>
+      </View>
       ))}
     </View>
   );
@@ -422,7 +348,23 @@ const MyOrders = ({ navigation }) => {
             resizeMode="contain" 
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My orders</Text>
+        <Text style={styles.headerTitle}>My Orders</Text>
+        <View style={styles.headerRight}>
+         
+          <TouchableOpacity
+            style={styles.drawerIndicator}
+            onPress={() => {
+              const drawer = navigation.getParent('Drawer');
+              if (drawer) {
+                drawer.openDrawer();
+              }
+            }}
+          >
+            <View style={styles.dot} />
+            <View style={styles.dot} />
+            <View style={styles.dot} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Filter Tabs */}
@@ -481,6 +423,35 @@ const MyOrders = ({ navigation }) => {
                 <Text style={styles.shopButtonText}>Start Shopping</Text>
               </TouchableOpacity>
             )}
+            
+            {/* Debug Button - Remove in production */}
+            <TouchableOpacity
+              style={[styles.shopButton, {backgroundColor: '#007AFF', marginTop: 10}]}
+              onPress={async () => {
+                console.log('=== MANUAL DEBUG TEST ===');
+                const storedUser = await AsyncStorage.getItem('userData');
+                console.log('Stored user:', storedUser);
+                
+                if (storedUser) {
+                  const userObj = JSON.parse(storedUser);
+                  const userId = userObj.user_id || userObj.id;
+                  console.log('User ID:', userId);
+                  
+                  if (userId) {
+                    console.log('Testing API call...');
+                    const result = await getUserOrders(userId);
+                    console.log('API Result:', result);
+                    Alert.alert('Debug Info', `API Success: ${result.success}\nOrders Count: ${result.orders?.length || 0}\nMessage: ${result.message || 'N/A'}`);
+                  } else {
+                    Alert.alert('Debug Info', 'No user ID found');
+                  }
+                } else {
+                  Alert.alert('Debug Info', 'No user data found in AsyncStorage');
+                }
+              }}
+            >
+              <Text style={styles.shopButtonText}>Debug API</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -519,6 +490,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     fontFamily: 'Montserrat-Bold',
+  },
+  headerRight: {
+    width: 40,
+  },
+  drawerIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  drawerIndicatorText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#fff',
+    marginHorizontal: 1,
   },
   filterContainer: {
     backgroundColor: '#EE2737',

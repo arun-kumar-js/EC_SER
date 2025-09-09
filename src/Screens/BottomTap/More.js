@@ -11,7 +11,9 @@ import {
   Alert,
   Share,
   Linking,
-  Image
+  Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -40,14 +42,12 @@ const More = () => {
     {
       icon: require('../../Assets/icon/bell.png'),
       label: 'Notifications',
-      onPress: () => {
-        Alert.alert('Notifications', 'No new notifications at the moment.');
-      },
+      onPress: () => navigation.navigate('Notification'),
     },
     {
       icon: require('../../Assets/icon/phone.png'),
       label: 'Contact Us',
-      onPress: () => navigation.navigate('Support'),
+      onPress: () => navigation.navigate('ContactUs'),
     },
     {
       icon: require('../../Assets/icon/about.png'),
@@ -199,16 +199,21 @@ const More = () => {
   }, []);
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View style={styles.container}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#EE2737']}
-              tintColor="#EE2737"
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <View style={styles.container}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#EE2737']}
+                tintColor="#EE2737"
             />
           }
         >
@@ -239,7 +244,7 @@ const More = () => {
           <View style={styles.walletBalanceContainer}>
             <Text style={styles.walletBalanceText}>Wallet Balance</Text>
             <Text style={styles.walletBalanceAmount}>
-              {loading ? 'Loading...' : `₹ ${walletBalance.toFixed(2)}`}
+              {loading ? 'Loading...' : `RM ${walletBalance.toFixed(2)}`}
             </Text>
           </View>
 
@@ -254,7 +259,8 @@ const More = () => {
             ))}
           </View>
         </ScrollView>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   ScrollView,
   Modal,
   Animated,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,31 +22,28 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import axios from 'axios';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HOMEPAGE_ENDPOINT, API_ACCESS_KEY } from '../../config/config';
 import {
   updateCartItem,
-  getProductQuantity,
-  fetchCartItems,
   increaseProductQuantity,
   decreaseProductQuantity,
 } from '../../Fuctions/CartService';
 import { getUserData, getWalletBalance } from '../../Fuctions/UserDataService';
 import CartIcon from '../../Components/CartIcon';
-import SidebarModal from '../../Components/SidebarModal';
+import CartButton from '../../Fuctions/CartButton';
+import { useCart } from '../../Context/CartContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const HomeScreen = () => {
   const navigation = useNavigation();
+  const { getProductQuantity } = useCart();
   const [data, setData] = useState(null);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [cartItems, setCartItems] = useState({}); // Track cart items and their quantities
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const drawerAnimation = useRef(new Animated.Value(0)).current;
   const [userData, setUserData] = useState(null);
   const [walletBalance, setWalletBalance] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState(null);
@@ -54,11 +53,17 @@ const HomeScreen = () => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const bannerScrollRef = useRef(null);
 
-  // Load cart data and user data when component mounts
+  // Load user data when component mounts
   useEffect(() => {
-    loadCartData();
     loadUserData();
   }, []);
+
+  // Refresh user data when screen comes into focus (e.g., after logout)
+  useFocusEffect(
+    useCallback(() => {
+      loadUserData();
+    }, [])
+  );
 
   // Auto-slide banner functionality
   useEffect(() => {
@@ -80,12 +85,40 @@ const HomeScreen = () => {
     }
   }, [data?.slider]);
 
-  // Handle navigation params for selected address
+  // Load selected address from AsyncStorage and handle navigation params
   useEffect(() => {
+    const loadSelectedAddress = async () => {
+      try {
+        console.log('=== LOADING SELECTED ADDRESS ===');
+        const storedAddress = await AsyncStorage.getItem('selectedAddress');
+        console.log('Stored address from AsyncStorage:', storedAddress);
+        
+        if (storedAddress) {
+          const address = JSON.parse(storedAddress);
+          setSelectedAddress(address);
+          console.log('Loaded selected address from storage:', address);
+          console.log('Address name:', address.name);
+          console.log('Address text:', address.address);
+        } else {
+          console.log('No selected address found in storage');
+        }
+      } catch (error) {
+        console.error('Error loading selected address:', error);
+      }
+    };
+
+    loadSelectedAddress();
+
     const unsubscribe = navigation.addListener('focus', () => {
+      // Reload address when screen comes into focus
+      loadSelectedAddress();
+      
+      // Also check for navigation params
       const params = navigation.getState()?.routes?.find(route => route.name === 'MainApp')?.params;
       if (params?.selectedAddress) {
         setSelectedAddress(params.selectedAddress);
+        // Also save to AsyncStorage
+        AsyncStorage.setItem('selectedAddress', JSON.stringify(params.selectedAddress));
       }
     });
 
@@ -117,27 +150,6 @@ const HomeScreen = () => {
     }
   };
 
-  // Drawer animation functions
-  const openDrawer = () => {
-    setDrawerVisible(true);
-    // Refresh user data when opening drawer
-    loadUserData();
-    Animated.timing(drawerAnimation, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const closeDrawer = () => {
-    Animated.timing(drawerAnimation, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      setDrawerVisible(false);
-    });
-  };
 
   // Logout function
   const handleLogout = async () => {
@@ -150,8 +162,6 @@ const HomeScreen = () => {
       setUserData(null);
       setWalletBalance(0);
       
-      // Close drawer
-      closeDrawer();
       
       // Navigate to login screen
       navigation.navigate('Login');
@@ -160,29 +170,11 @@ const HomeScreen = () => {
     }
   };
 
-  const loadCartData = async () => {
-    try {
-      const cartItems = await fetchCartItems();
-      const cartState = {};
-      cartItems.forEach(item => {
-        const itemId = item.id || item.product_id;
-        cartState[itemId] = item.quantity || 0;
-      });
-      setCartItems(cartState);
-    } catch (error) {
-      console.error('Error loading cart data:', error);
-    }
-  };
-
   // Cart functions
   const addToCart = async item => {
     try {
-      const newQuantity = await increaseProductQuantity(item);
-      // Update local state to reflect the change
-      setCartItems(prev => ({
-        ...prev,
-        [item.id || item.product_id]: newQuantity,
-      }));
+      await increaseProductQuantity(item);
+      // The context will automatically update and trigger re-renders
     } catch (error) {
       console.error('Error adding to cart:', error);
     }
@@ -190,260 +182,14 @@ const HomeScreen = () => {
 
   const removeFromCart = async item => {
     try {
-      const newQuantity = await decreaseProductQuantity(item);
-      // Update local state to reflect the change
-      setCartItems(prev => ({
-        ...prev,
-        [item.id || item.product_id]: newQuantity,
-      }));
+      await decreaseProductQuantity(item);
+      // The context will automatically update and trigger re-renders
     } catch (error) {
       console.error('Error removing from cart:', error);
     }
   };
 
-  const getItemQuantity = async item => {
-    try {
-      const quantity = await getProductQuantity(item.id || item.product_id);
-      return quantity;
-    } catch (error) {
-      console.error('Error getting item quantity:', error);
-      return 0;
-    }
-  };
 
-  // Cart Button Component
-  const CartButton = ({ item }) => {
-    const quantity = cartItems[item.id || item.product_id] || 0;
-
-    if (quantity === 0) {
-      return (
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#EF3340',
-            paddingVertical: hp('1.2%'),
-            paddingHorizontal: wp('4%'),
-            borderRadius: wp('2%'),
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginTop: hp('1%'),
-            marginBottom: hp('1%'),
-            marginHorizontal: wp('2%'),
-            width: wp('12%'),
-            height: hp('6%'),
-            alignSelf: 'center',
-          }}
-          onPress={() => addToCart(item)}
-          activeOpacity={1}
-        >
-          <Text
-            style={{ 
-              color: '#fff', 
-              fontWeight: 'bold', 
-              fontSize: wp('4%'),
-              fontFamily: 'Montserrat-Bold'
-            }}
-          >
-            Add 
-          </Text>
-        </TouchableOpacity>
-      );
-    }
-
-    return (
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: hp('1%'),
-          marginBottom: hp('1%'),
-          gap: wp('2%'),
-          height: hp('6%'),
-          width: wp('85%'),
-          alignSelf: 'center',
-          marginHorizontal: wp('2%'),
-          backgroundColor: '#EF3340',
-          borderRadius: wp('2%'),
-          paddingHorizontal: wp('1%'),
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => removeFromCart(item)}
-          style={{
-            width: wp('12%'),
-            height: hp('6%'),
-            backgroundColor: '#EF3340',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: wp('2%'),
-          }}
-          activeOpacity={1}
-        >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: wp('6%'), fontFamily: 'Montserrat-Bold' }}>-</Text>
-        </TouchableOpacity>
-
-          <View
-            style={{
-              backgroundColor: '#fff',
-            borderRadius: wp('1%'),
-            paddingHorizontal: wp('4%'),
-            paddingVertical: hp('1.5%'),
-            marginHorizontal: wp('2%'),
-            justifyContent: 'center',
-            alignItems: 'center',
-            minWidth: wp('12%'),
-            minHeight: hp('6%'),
-          }}
-        >
-        <Text
-          style={{
-              color: '#EF3340',
-            fontWeight: 'bold',
-              fontSize: wp('5%'),
-            textAlign: 'center',
-            fontFamily: 'Montserrat-Bold',
-          }}
-        >
-          {quantity}
-        </Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => addToCart(item)}
-          style={{
-            width: wp('12%'),
-            height: hp('6%'),
-            backgroundColor: '#EF3340',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: wp('2%'),
-          }}
-          activeOpacity={1}
-        >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: wp('6%'), fontFamily: 'Montserrat-Bold' }}>+</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  // Promotion Cart Button Component (Larger size)
-  const PromotionCartButton = ({ item }) => {
-    const quantity = cartItems[item.id || item.product_id] || 0;
-
-    if (quantity === 0) {
-      return (
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#EF3340',
-            paddingVertical: hp('1.5%'),
-            paddingHorizontal: wp('4%'),
-            borderRadius: wp('2%'),
-            alignItems: 'center',
-            marginTop: hp('1%'),
-            marginBottom: hp('1%'),
-            marginHorizontal: wp('2%'),
-            height: hp('5.5%'),
-            width: wp('35%'),
-            alignSelf: 'center',
-           
-          }}
-          onPress={() => addToCart(item)}
-          activeOpacity={1}
-        >
-          <Text
-            style={{ 
-              color: '#fff', 
-              fontWeight: 'bold', 
-              fontSize: wp('4%'),
-              fontFamily: 'Montserrat-Bold'
-            }}
-          >
-            Add
-          </Text>
-        </TouchableOpacity>
-      );
-    }
-
-    return (
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: hp('1%'),
-          marginBottom: hp('1%'),
-          gap: wp('4%'),
-          height: hp('5.5%'),
-          width: wp('80%'),
-          alignSelf: 'center',
-          marginHorizontal: wp('2%'),
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => removeFromCart(item)}
-          style={{
-            width: wp('10%'),
-            height: wp('10%'),
-            backgroundColor: '#EF3340',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: wp('1%'),
-          }}
-          activeOpacity={1}
-        >
-          <View
-            style={{
-              width: wp('5%'),
-              height: wp('0.5%'),
-              backgroundColor: '#fff',
-            }}
-          />
-        </TouchableOpacity>
-
-        <Text
-          style={{
-            color: '#333',
-            fontWeight: 'bold',
-            fontSize: wp('3.5%'),
-            minWidth: wp('8%'),
-            textAlign: 'center',
-            fontFamily: 'Montserrat-Bold',
-          }}
-        >
-          {quantity}
-        </Text>
-
-        <TouchableOpacity
-          onPress={() => addToCart(item)}
-          style={{
-            width: wp('10%'),
-            height: wp('10%'),
-            backgroundColor: '#EF3340',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: wp('1%'),
-          }}
-          activeOpacity={1}
-        >
-          <View
-            style={{
-              width: wp('5%'),
-              height: wp('0.5%'),
-              backgroundColor: '#fff',
-            }}
-          />
-          <View
-            style={{
-              width: wp('0.5%'),
-              height: wp('5%'),
-              backgroundColor: '#fff',
-              position: 'absolute',
-            }}
-          />
-        </TouchableOpacity>
-      </View>
-    );
-  };
 
   const fetchHomePageData = async () => {
     try {
@@ -468,10 +214,14 @@ const HomeScreen = () => {
       setCategories(res.category || []);
       const prod =
         res.section?.[0]?.products?.map(p => ({
+          id: p.id,
+          product_id: p.product_id,
           name: p.name,
           size: p.variants?.[0]?.measurement_unit_name || '',
-          price: `₹${p.variants?.[0]?.product_price || ''}`,
+          price: `RM ${p.variants?.[0]?.product_price || ''}`,
           image: { uri: p.image },
+          variants: p.variants,
+          ...p, // Include all original product data
         })) || [];
       setProducts(prod);
     }
@@ -486,10 +236,14 @@ const HomeScreen = () => {
         setCategories(res.category || []);
         const prod =
           res.section?.[0]?.products?.map(p => ({
+            id: p.id,
+            product_id: p.product_id,
             name: p.name,
             size: p.variants?.[0]?.measurement_unit_name || '',
-            price: `₹${p.variants?.[0]?.product_price || ''}`,
+            price: `RM ${p.variants?.[0]?.product_price || ''}`,
             image: { uri: p.image },
+            variants: p.variants,
+            ...p, // Include all original product data
           })) || [];
         setProducts(prod);
       }
@@ -499,40 +253,96 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa', }} edges={['top', 'left', 'right']}>
-      {/* Fixed Header */}
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', gap: wp('3.5%') }}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        {/* Custom Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            {/* Menu button - clickable */}
+            <TouchableOpacity 
+              style={styles.menuButton}
+              onPress={() => {
+                console.log('Menu button pressed');
+                
+                // Try to get the drawer navigation
+                try {
+                  const drawerNavigation = navigation.getParent('Drawer');
+                  if (drawerNavigation && drawerNavigation.openDrawer) {
+                    console.log('Opening drawer via getParent(Drawer)');
+                    drawerNavigation.openDrawer();
+                    return;
+                  }
+                } catch (error) {
+                  console.log('Error with getParent(Drawer):', error);
+                }
+                
+                // Try alternative approach - get all parents
+                try {
+                  let currentNav = navigation;
+                  while (currentNav) {
+                    if (currentNav.openDrawer) {
+                      console.log('Opening drawer via parent navigation');
+                      currentNav.openDrawer();
+                      return;
+                    }
+                    currentNav = currentNav.getParent();
+                  }
+                } catch (error) {
+                  console.log('Error with parent navigation:', error);
+                }
+                
+                console.log('Could not find drawer navigation');
+              }}
+              activeOpacity={0.7}
+            >
+              <Image 
+                source={require('../../Assets/icon/menu.png')} 
+                style={styles.menuIcon}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          </View>
+        <View style={styles.headerCenter}>
+          {userData ? (
+            <TouchableOpacity
+              style={styles.addressContainer}
+              onPress={() => navigation.dispatch(CommonActions.navigate('AddressPage'))}
+              activeOpacity={0.7}
+            >
+              <Image
+                source={require('../../Assets/Images/Edit.png')}
+                style={styles.editIcon}
+              />
+              <Text 
+                style={styles.locationText}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {selectedAddress 
+                  ? `${selectedAddress.name} - ${selectedAddress.address}` 
+                  : 'Choose Location'
+                }
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.addressContainer}>
+              <Text style={styles.locationText}>
+                Welcome to EC Services
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.headerRight}>
           <TouchableOpacity
-            onPress={openDrawer}
+            onPress={() => navigation.navigate('Cart')}
             activeOpacity={1}
-            style={{ padding: wp('2%') }}
           >
-            <Icon name="menu" size={wp('6%')} color="#fff" />
+            <CartIcon size={wp('6%')} color="#fff" />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: wp('2.5%'),
-          }}
-          onPress={() => navigation.navigate('AddressPage')}
-          activeOpacity={0.7}
-        >
-          <Image
-            source={require('../../Assets/Images/Edit.png')}
-            style={{ width: wp('4%'), height: hp('2%'), tintColor: '#fff' }}
-          />
-          <Text style={styles.locationText}>
-            {selectedAddress ? selectedAddress.address : 'Choose Location'}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Cart')}
-          activeOpacity={1}
-        >
-          <CartIcon size={wp('6%')} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       {/* Fixed Search Bar */}
@@ -657,7 +467,7 @@ const HomeScreen = () => {
                           width: wp('40%'),
                           marginRight: wp('3%'),
                           backgroundColor: '#edececff',
-                          borderRadius: wp('2%'),
+                          borderRadius: wp('1%'),
                           overflow: 'hidden',
                           elevation: 2,
                         }}
@@ -706,7 +516,7 @@ const HomeScreen = () => {
                             RM{item?.variants?.[0]?.product_price || ''}
                           </Text>
                         </View>
-                        <PromotionCartButton item={item} />
+                        <CartButton product={item} size="small" />
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -768,7 +578,7 @@ const HomeScreen = () => {
         </View>
 
         {/* New Arrival Products Section */}
-        <View>
+        {/* <View>
           <Text style={styles.sectionTitle}>New arrival products</Text>
           {products?.length > 0 && (
             <FlatList
@@ -801,20 +611,16 @@ const HomeScreen = () => {
                   <Text style={styles.productPrice}>
                     {item.price.replace('RM', 'RM')}
                   </Text>
-                  <CartButton item={item} />
+                  <View style={styles.cartButtonContainer}>
+                    <CartButton product={item} size="medium" />
+                  </View>
                 </View>
               )}
             />
           )}
-        </View>
+        </View> */}
       </ScrollView>
-
-             {/* Sidebar Modal */}
-       <SidebarModal
-        visible={drawerVisible}
-         onClose={closeDrawer}
-         navigation={navigation}
-       />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -833,13 +639,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
     zIndex: 1000,
+    minHeight: hp('8%'),
+  },
+  headerLeft: {
+    width: wp('12%'),
+    alignItems: 'flex-start',
+  },
+  headerCenter: {
+    flex: 1,
+    marginHorizontal: wp('2%'),
+    justifyContent: 'center',
+  },
+  headerRight: {
+    width: wp('12%'),
+    alignItems: 'flex-end',
+  },
+  addressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('2.5%'),
+    flex: 1,
+  },
+  editIcon: {
+    width: wp('4%'),
+    height: hp('2%'),
+    tintColor: '#fff',
+  },
+  menuButton: {
+    padding: wp('2%'),
+    borderRadius: wp('2%'),
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  menuIcon: {
+    width: wp('6%'),
+    height: wp('6%'),
+    tintColor: '#fff',
   },
   locationText: {
     color: '#fff',
     fontFamily: 'Montserrat-Medium',
     fontWeight: '500',
-    fontSize: wp('3.5%'),
-    lineHeight: wp('5.1%'),
+    fontSize: wp('3%'),
+    lineHeight: wp('4%'),
+    flex: 1,
+    flexWrap: 'wrap',
     letterSpacing: 0,
     textAlign: 'center',
   },
@@ -861,6 +704,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 3,
+    marginHorizontal: wp('1%'),
     shadowOffset: {
       width: 0,
       height: 1,
@@ -1015,17 +859,22 @@ const styles = StyleSheet.create({
     marginTop: hp('0.5%'),
     fontFamily: 'Montserrat-Bold',
   },
+  cartButtonContainer: {
+    marginTop: hp('1%'),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   addButton: {
     backgroundColor: '#e60023',
     paddingVertical: hp('0.8%'),
     paddingHorizontal: wp('4%'),
-    borderRadius: wp('2%'),
-    marginTop: hp('1%'),
+    borderRadius: wp('1%'),
+    margin: hp('1%'),
   },
   addButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: wp('3%'),
+    fontSize: wp('2%'),
     width: '100%',
     height: '10%',
     fontFamily: 'Montserrat-Bold',

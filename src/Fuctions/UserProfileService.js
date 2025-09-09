@@ -1,12 +1,12 @@
 import axios from 'axios';
-import { API_ACCESS_KEY, API_BASE_URL } from '../config/config';
+import { API_ACCESS_KEY, API_BASE_URL, GET_ALL_ADDRESSES } from '../config/config';
 
 export const updateUserProfile = async (profileData) => {
   try {
     const formData = new FormData();
     formData.append('accesskey', API_ACCESS_KEY);
-    formData.append('type', 'update_profile');
-    formData.append('user_id', profileData.user_id);
+    formData.append('type', 'edit-profile');
+    formData.append('id', profileData.user_id);
     formData.append('name', profileData.name);
     formData.append('email', profileData.email);
     formData.append('mobile', profileData.mobile);
@@ -18,16 +18,18 @@ export const updateUserProfile = async (profileData) => {
     formData.append('latitude', profileData.latitude || '');
     formData.append('longitude', profileData.longitude || '');
     formData.append('dob', profileData.dateOfBirth || '');
+    formData.append('fcm_id', ''); // Add fcm_id as empty string as shown in the API example
+    formData.append('type', 'edit-profile');
 
     // Log form data
     console.log('=== UPDATE USER PROFILE ===');
     console.log('Base URL:', API_BASE_URL);
-    console.log('Endpoint:', 'user-profile.php');
+    console.log('Endpoint:', 'user_addresses.php');
     console.log('Profile Data:', profileData);
     console.log('Form Data:', {
       accesskey: API_ACCESS_KEY,
-      type: 'update_profile',
-      user_id: profileData.user_id,
+      type: 'edit-profile',
+      id: profileData.user_id,
       name: profileData.name,
       email: profileData.email,
       mobile: profileData.mobile,
@@ -39,10 +41,11 @@ export const updateUserProfile = async (profileData) => {
       latitude: profileData.latitude,
       longitude: profileData.longitude,
       dob: profileData.dateOfBirth,
+      fcm_id: '',
     });
 
     const response = await axios.post(
-      `${API_BASE_URL}user-profile.php`,
+      GET_ALL_ADDRESSES,
       formData,
     );
 

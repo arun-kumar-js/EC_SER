@@ -32,8 +32,8 @@ const CheckOutScreen = ({ route }) => {
   const [availableDeliveryOptions, setAvailableDeliveryOptions] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [storeSettings, setStoreSettings] = useState({
-    tax: 8, // Default tax percentage
-    delivery_charge: 5, // Default delivery charge
+    tax: 0, // Default tax percentage
+    delivery_charge: 0, // Default delivery charge
   });
 
   // Get selected address from route params
@@ -47,7 +47,7 @@ const CheckOutScreen = ({ route }) => {
   const getItemPrice = item => {
     // Try different possible price fields
     const price =
-      item.price?.replace('₹', '') ||
+      item.price?.replace('RM', '') ||
       item.product_price ||
       (item.product_variants && item.product_variants[0]?.product_price) ||
       (item.variants && item.variants[0]?.product_price) ||
@@ -377,7 +377,7 @@ const CheckOutScreen = ({ route }) => {
                 >
                   <Text style={styles.deliveryOptionText}>{option.name}</Text>
                   <Text style={styles.deliveryOptionPrice}>
-                    {option.price > 0 ? `₹${option.price}` : 'FREE'}
+                    {option.price > 0 ? `RM ${option.price}` : 'FREE'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -405,10 +405,10 @@ const CheckOutScreen = ({ route }) => {
               </Text>
               <Text style={styles.tableCell}>{item.quantity || 1}</Text>
               <Text style={styles.tableCell}>
-                ₹{getItemPrice(item).toFixed(2)}
+                RM {getItemPrice(item).toFixed(2)}
               </Text>
               <Text style={styles.tableCell}>
-                ₹{(getItemPrice(item) * (item.quantity || 1)).toFixed(2)}
+                RM {(getItemPrice(item) * (item.quantity || 1)).toFixed(2)}
               </Text>
             </View>
           ))}
@@ -418,7 +418,7 @@ const CheckOutScreen = ({ route }) => {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
               <Text style={styles.summaryValue}>
-                ₹{totals.subtotal.toFixed(2)}
+                RM {totals.subtotal.toFixed(2)}
               </Text>
             </View>
             <View style={styles.summaryRow}>
@@ -426,27 +426,27 @@ const CheckOutScreen = ({ route }) => {
                 Tax ({storeSettings.tax}%)
               </Text>
               <Text style={styles.summaryValue}>
-                + ₹{totals.tax.toFixed(2)}
+                + RM {totals.tax.toFixed(2)}
               </Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Taxable Amount</Text>
               <Text style={styles.summaryValue}>
-                ₹{totals.taxableAmount.toFixed(2)}
+                RM {totals.taxableAmount.toFixed(2)}
               </Text>
             </View>
             {promoApplied && promoDiscount > 0 && (
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Promo Discount</Text>
                 <Text style={[styles.summaryValue, styles.discountValue]}>
-                  - ₹{promoDiscount.toFixed(2)}
+                  - RM {promoDiscount.toFixed(2)}
                 </Text>
               </View>
             )}
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Delivery Charge</Text>
               <Text style={styles.summaryValue}>
-                ₹{totals.deliveryCharge.toFixed(1)}
+                RM {totals.deliveryCharge.toFixed(1)}
               </Text>
             </View>
           </View>
@@ -458,7 +458,7 @@ const CheckOutScreen = ({ route }) => {
         <View style={styles.totalSection}>
           <Icon name="information-circle-outline" size={20} color="#666" />
           <Text style={styles.totalText}>
-            Total : ₹{totals.total.toFixed(2)}
+            Total : RM {totals.total.toFixed(2)}
           </Text>
         </View>
         <TouchableOpacity

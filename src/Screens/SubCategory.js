@@ -17,17 +17,18 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CartIcon from '../Components/CartIcon';
 import {
-  getProductQuantity,
   increaseProductQuantity,
   decreaseProductQuantity,
 } from '../Fuctions/CartService';
-import { onCartUpdated, offCartUpdated } from '../Fuctions/cartEvents';
+import { toggleWishlistItem, checkWishlistStatus } from '../Fuctions/WishlistService';
+import { useCart } from '../Context/CartContext';
 
 const SubCategory = ({ route, navigation }) => {
   const { category_id, subcategory_id, category_name } = route.params;
+  const { getProductQuantity } = useCart();
   const [products, setProducts] = useState([]);
   const [favorites, setFavorites] = useState({});
-  const [cartQuantities, setCartQuantities] = useState({});
+  const [wishlistStatus, setWishlistStatus] = useState({});
 
   console.log('SubCategory Params:', {
     category_id,
@@ -35,20 +36,21 @@ const SubCategory = ({ route, navigation }) => {
     category_name,
   });
 
-  // Fetch cart quantities for all products
-  const fetchCartQuantities = async () => {
+
+  // Fetch wishlist status for all products
+  const fetchWishlistStatus = async () => {
     try {
-      const quantities = {};
+      const status = {};
       for (const product of products) {
         const productId = product.id ?? product.product_id;
         if (productId) {
-          const quantity = await getProductQuantity(productId);
-          quantities[productId] = quantity;
+          const inWishlist = await checkWishlistStatus(productId);
+          status[productId] = inWishlist;
         }
       }
-      setCartQuantities(quantities);
+      setWishlistStatus(status);
     } catch (error) {
-      console.error('Error fetching cart quantities:', error);
+      console.error('Error fetching wishlist status:', error);
     }
   };
 
@@ -74,37 +76,36 @@ const SubCategory = ({ route, navigation }) => {
     fetchProducts();
   }, [category_id, subcategory_id]);
 
-  // Fetch cart quantities when products change
+  // Fetch wishlist status when products change
   useEffect(() => {
     if (products.length > 0) {
-      fetchCartQuantities();
+      fetchWishlistStatus();
     }
   }, [products]);
 
-  // Listen for cart updates
-  useEffect(() => {
-    const listener = () => fetchCartQuantities();
-    onCartUpdated(listener);
-    return () => {
-      offCartUpdated(listener);
-    };
-  }, [products]);
-
-  const toggleFavorite = productId => {
-    setFavorites(prev => ({
-      ...prev,
-      [productId]: !prev[productId],
-    }));
+  const toggleFavorite = async (product) => {
+    try {
+      const productId = product.id ?? product.product_id;
+      const result = await toggleWishlistItem(product);
+      
+      if (result.success) {
+        setWishlistStatus(prev => ({
+          ...prev,
+          [productId]: result.action === 'added',
+        }));
+        console.log(result.message);
+      } else {
+        console.error('Failed to toggle wishlist:', result.message);
+      }
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+    }
   };
 
   const increaseQuantity = async item => {
     try {
-      const productId = item.id ?? item.product_id;
-      const newQuantity = await increaseProductQuantity(item);
-      setCartQuantities(prev => ({
-        ...prev,
-        [productId]: newQuantity,
-      }));
+      await increaseProductQuantity(item);
+      // The context will automatically update and trigger re-renders
     } catch (error) {
       console.error('Error increasing quantity:', error);
     }
@@ -112,12 +113,8 @@ const SubCategory = ({ route, navigation }) => {
 
   const decreaseQuantity = async item => {
     try {
-      const productId = item.id ?? item.product_id;
-      const newQuantity = await decreaseProductQuantity(item);
-      setCartQuantities(prev => ({
-        ...prev,
-        [productId]: newQuantity,
-      }));
+      await decreaseProductQuantity(item);
+      // The context will automatically update and trigger re-renders
     } catch (error) {
       console.error('Error decreasing quantity:', error);
     }
@@ -162,12 +159,12 @@ const SubCategory = ({ route, navigation }) => {
         )}
         <TouchableOpacity
           style={[styles.heartIcon, { borderRadius: wp('3%') }]}
-          onPress={() => toggleFavorite(item.id)}
+          onPress={() => toggleFavorite(item)}
         >
           <Ionicons
-            name={favorites[item.id] ? 'heart' : 'heart-outline'}
+            name={wishlistStatus[item.id] ? 'heart' : 'heart-outline'}
             size={24}
-            color="#F70D24"
+            color={wishlistStatus[item.id] ? '#F70D24' : '#999'}
           />
         </TouchableOpacity>
         <Image source={{ uri: item.image }} style={styles.productImage} />
@@ -218,7 +215,7 @@ const SubCategory = ({ route, navigation }) => {
                 RM {item.variants?.[0]?.product_price ?? item.price}
               </Text>
             </View>
-            {cartQuantities[item.id] ? (
+            {getProductQuantity(item.id) > 0 ? (
               <View style={styles.cartContainer}>
                 <TouchableOpacity
                   style={styles.quantityButton}
@@ -229,7 +226,7 @@ const SubCategory = ({ route, navigation }) => {
 
                 <View style={styles.countBox}>
                   <Text style={styles.countText}>
-                    {cartQuantities[item.id]}
+                    {getProductQuantity(item.id)}
                   </Text>
                 </View>
 
@@ -318,11 +315,19 @@ const styles = StyleSheet.create({
   // row style not needed for single column FlatList
   card: {
     backgroundColor: '#f9f9f9',
-    borderRadius: wp('2%'),
+    borderRadius: wp('4%'),
     padding: wp('4%'),
-    marginBottom: hp('2%'),
+    marginBottom: hp('1%'),
+    marginHorizontal: wp('4%'),
     flexDirection: 'row',
-    elevation: 2,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: wp('2%'),
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     position: 'relative',
   },
   heartIcon: {
@@ -420,6 +425,7 @@ const styles = StyleSheet.create({
     paddingRight: wp('6%'),
     paddingBottom: hp('1%'),
     paddingLeft: wp('6%'),
+    marginRight: wp('2%'),
     borderRadius: wp('2%'),
     backgroundColor: '#F70D24',
     justifyContent: 'center',
@@ -463,33 +469,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F70D24',
     borderRadius: wp('2%'),
+    width: wp('28%'),
     height: hp('4.5%'),
     paddingHorizontal: wp('1%'),
+    marginRight: wp('2%'),
   },
   quantityButton: {
     paddingHorizontal: wp('3%'),
-    paddingVertical: hp('0.5%'),
+    paddingVertical: hp('0.8%'),
+    minWidth: wp('5%'),
+    minHeight: hp('3.2%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    MarginVertical: hp('1.5%'),
   },
   quantityButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: wp('2%'),
-    paddingTop: hp('0.7%'),
+    fontSize: wp('3%'),
+    fontFamily: 'Montserrat-Bold',
   },
   countBox: {
     backgroundColor: '#fff',
       borderRadius: wp('%'),
     paddingHorizontal: wp('3%'),
-    paddingVertical: hp('1.5%'),
-    marginHorizontal: wp('2%'),
+    paddingVertical: hp('1.7%'),
+    marginLeft: wp('1%'),
+    marginRight: wp('2%'),
+    //marginVertical: hp('0.5%'),
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: wp('10%'),
   },
   countText: {
     color: '#F70D24',
     fontWeight: 'bold',
-    fontSize: wp('4%'),
+    fontSize: wp('3%'),
     textAlign: 'center',
+   paddingBottom: hp('1.5%'),
+   // MarginVertical: hp('2.5%'),
   },
 });

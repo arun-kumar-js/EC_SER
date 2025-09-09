@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
 import {
   SafeAreaView,
   View,
@@ -11,35 +12,37 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
+  Alert,
   Image,
 } from 'react-native';
-import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {
-  widthPercentageToDP as wp,
-  heightPercentageToDP as hp,
-} from 'react-native-responsive-screen';
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { LOGIN_OTP, API_ACCESS_KEY } from '../config/config';
 
 const Login = () => {
   const [mobileNumber, setMobileNumber] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
 
   const handleGetOtp = async () => {
-    if (!mobileNumber || mobileNumber.length < 10) {
-      Alert.alert('Error', 'Please enter a valid mobile number');
-      return;
-    }
+    try {
+      const formData = new FormData();
+      formData.append('mobile', mobileNumber);
+      formData.append('accesskey', API_ACCESS_KEY);
+      formData.append('type', 'verify-user');
 
-    setLoading(true);
-
-    // Simulate API call delay
-    setTimeout(() => {
-      setLoading(false);
-      // Mock successful OTP send
+     const response = await axios.post(LOGIN_OTP, formData);
+      console.log('Response:', response.data);
       Alert.alert('Success', 'OTP has been sent successfully.');
       navigation.navigate('OtpScreen', { mobileNumber });
-    }, 1000);
+    } catch (error) {
+      if (error.response && error.response.data) {
+        Alert.alert('Error', error.response.data.message || 'Failed to send OTP.');
+        console.error('Error sending OTP:', error.response.data);
+      } else {
+        Alert.alert('Error', 'An error occurred. Please try again.');
+        console.error('Error sending OTP:', error);
+      }
+    }
   };
 
   return (
@@ -47,7 +50,7 @@ const Login = () => {
       <StatusBar barStyle="light-content" backgroundColor="#EE2737" />
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => navigation.navigate("MainDrawer")}>
             <Image
               source={require('../Assets/Images/Arrow.png')}
               style={styles.backArrow}
@@ -86,14 +89,8 @@ const Login = () => {
                 You will receive a 6 digit OTP through SMS
               </Text>
 
-              <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleGetOtp}
-                disabled={loading}
-              >
-                <Text style={styles.buttonText}>
-                  {loading ? 'SENDING...' : 'GET OTP'}
-                </Text>
+              <TouchableOpacity style={styles.button} onPress={handleGetOtp}>
+                <Text style={styles.buttonText}>GET OTP</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -126,13 +123,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: wp('4%'),
-    // paddingTop: Platform.OS === 'android' ? hp('3.5%') : hp('2%'),
+   // paddingTop: Platform.OS === 'android' ? hp('3.5%') : hp('2%'),
     //paddingBottom: hp('2%'),
   },
   headerTitle: {
     color: '#EE2737',
     marginLeft: wp('2%'),
-    fontFamily: 'Montserrat-Medium',
+    fontFamily: 'Poppins',
     fontWeight: '500',
 
     fontSize: hp('2.2%'),
@@ -150,7 +147,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: hp('2.5%'),
     marginTop: hp('1%'),
-    fontFamily: 'Montserrat-Regular',
   },
   formContainer: {
     width: '100%',
@@ -169,21 +165,18 @@ const styles = StyleSheet.create({
     fontSize: hp('2.2%'),
     color: '#333333',
     marginRight: wp('2.5%'),
-    fontFamily: 'Montserrat-Regular',
   },
   input: {
     flex: 1,
     fontSize: hp('2.2%'),
     color: '#333333',
     paddingVertical: 0,
-    fontFamily: 'Montserrat-Regular',
   },
   otpInfoText: {
     color: '#8A8A8A',
     fontSize: hp('1.8%'),
     marginTop: hp('2%'),
     textAlign: 'center',
-    fontFamily: 'Montserrat-Regular',
   },
   button: {
     backgroundColor: '#EE2737',
@@ -197,7 +190,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: hp('2.2%'),
     fontWeight: '500',
-    fontFamily: 'Montserrat-Medium',
   },
   footer: {
     padding: wp('5%'),
@@ -208,11 +200,11 @@ const styles = StyleSheet.create({
     color: '#8A8A8A',
     fontSize: hp('1.8%'),
     textAlign: 'center',
-    fontFamily: 'Montserrat-Regular',
   },
   backArrow: {
     width: wp('5.5%'),
     height: hp('3%'),
+
   },
   companyLogo: {
     width: wp('50%'),
@@ -221,10 +213,6 @@ const styles = StyleSheet.create({
     marginBottom: hp('6%'),
     alignSelf: 'center',
     resizeMode: 'contain',
-  },
-  buttonDisabled: {
-    backgroundColor: '#D3D3D3',
-    opacity: 0.7,
   },
 });
 

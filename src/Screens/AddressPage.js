@@ -10,6 +10,7 @@ import {
   Platform,
   StatusBar,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -22,15 +23,20 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import { fetchUserAddresses, deleteAddress, editAddress } from '../Fuctions/AddressService';
+import { ADD_NEW_ADDRESS_STATE, ADD_NEW_ADDRESS_CITY, API_ACCESS_KEY } from '../config/config';
+import axios from 'axios';
 
 const ChooseAddressScreen = ({ navigation }) => {
   const route = useRoute();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState(null);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editAddressData, setEditAddressData] = useState(null);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
 
   // Handle route parameters for edit mode
   useEffect(() => {
@@ -53,14 +59,88 @@ const ChooseAddressScreen = ({ navigation }) => {
     }
   }, [route.params]);
 
+  // Fetch states and cities for name mapping
+  const fetchStatesAndCities = async () => {
+    try {
+      // Fetch states
+      const stateFormData = new FormData();
+      stateFormData.append('accesskey', API_ACCESS_KEY);
+      const stateResponse = await axios.post(ADD_NEW_ADDRESS_STATE, stateFormData);
+      setStates(stateResponse.data.data || []);
+
+      // Fetch cities for all states (we'll need this for mapping)
+      const cityFormData = new FormData();
+      cityFormData.append('accesskey', API_ACCESS_KEY);
+      // We'll fetch cities when we need them for specific states
+    } catch (error) {
+      console.error('Error fetching states:', error);
+    }
+  };
+
+  // Fetch cities for a specific state
+  const fetchCitiesForState = async (stateId) => {
+    try {
+      const cityFormData = new FormData();
+      cityFormData.append('accesskey', API_ACCESS_KEY);
+      cityFormData.append('state_id', stateId);
+      const cityResponse = await axios.post(ADD_NEW_ADDRESS_CITY, cityFormData);
+      return cityResponse.data.data || [];
+    } catch (error) {
+      console.error('Error fetching cities for state:', stateId, error);
+      return [];
+    }
+  };
+
+  // Map address data with state and city names
+  const mapAddressWithNames = async (addressList) => {
+    const mappedAddresses = await Promise.all(
+      addressList.map(async (address) => {
+        let stateName = address.state_name || address.state;
+        let cityName = address.city_name || address.city;
+
+        // If names are null, try to find them from our states/cities data
+        if (!stateName || stateName === address.state) {
+          const state = states.find(s => s.id === address.state || s.id === parseInt(address.state));
+          stateName = state ? state.name : address.state;
+        }
+
+        if (!cityName || cityName === address.city) {
+          // Try to find city in our cities list first
+          let city = cities.find(c => c.id === address.city || c.id === parseInt(address.city));
+          
+          // If not found, fetch cities for this state
+          if (!city && address.state) {
+            const stateCities = await fetchCitiesForState(address.state);
+            city = stateCities.find(c => c.id === address.city || c.id === parseInt(address.city));
+          }
+          
+          cityName = city ? city.name : address.city;
+        }
+
+        return {
+          ...address,
+          state_name: stateName,
+          city_name: cityName,
+        };
+      })
+    );
+    return mappedAddresses;
+  };
+
+  // Pull to refresh function
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         console.log('=== ADDRESS PAGE LOADED ===');
 
-        // Check all AsyncStorage keys
-        const allKeys = await AsyncStorage.getAllKeys();
-        console.log('All AsyncStorage keys:', allKeys);
+        // Fetch states first for name mapping
+        await fetchStatesAndCities();
 
         const storedUser = await AsyncStorage.getItem('userData');
         console.log('Raw stored user data:', storedUser);
@@ -71,41 +151,38 @@ const ChooseAddressScreen = ({ navigation }) => {
           console.log('Parsed user object:', userObj);
           console.log('User ID:', userObj.user_id || userObj.id);
 
-          // Test with hardcoded user ID first
-          console.log('=== TESTING WITH USER ID 1 ===');
-          const testAddresses = await fetchUserAddresses('1');
-          console.log('Test addresses result:', testAddresses);
-
-          // Now try with actual user ID
-          console.log('=== CALLING FETCH USER ADDRESSES ===');
-          console.log('User Object:', userObj);
-          console.log('User ID being passed:', userObj.user_id || userObj.id);
-          const addressesData = await fetchUserAddresses(
-            userObj.user_id || userObj.id,
-          );
-          setAddresses(addressesData);
-          // Set first address as default selected
-          if (addressesData.length > 0) {
-            setSelectedAddressId(addressesData[0].id);
+          // Only fetch addresses if user is logged in and has valid ID
+          if (userObj.user_id || userObj.id) {
+            console.log('=== CALLING FETCH USER ADDRESSES ===');
+            console.log('User ID being passed:', userObj.user_id || userObj.id);
+            const addressesData = await fetchUserAddresses(
+              userObj.user_id || userObj.id,
+            );
+            
+            // Map addresses with proper state and city names
+            const mappedAddresses = await mapAddressWithNames(addressesData);
+            setAddresses(mappedAddresses);
+            
+            // Set first address as default selected
+            if (mappedAddresses.length > 0) {
+              setSelectedAddressId(mappedAddresses[0].id);
+            }
+            console.log('=== ADDRESSES SET IN STATE ===');
+            console.log('Mapped Addresses Data:', mappedAddresses);
+            console.log('Addresses Count:', mappedAddresses.length);
+          } else {
+            console.warn('No valid user ID found');
+            setAddresses([]);
           }
-          console.log('=== ADDRESSES SET IN STATE ===');
-          console.log('Addresses Data:', addressesData);
-          console.log('Addresses Count:', addressesData.length);
         } else {
-          console.warn('No user data found in AsyncStorage');
-          console.log('=== TESTING WITHOUT USER DATA ===');
-          // Test with hardcoded user ID
-          const testAddresses = await fetchUserAddresses('1');
-          console.log('Test addresses without user data:', testAddresses);
-          setAddresses(testAddresses);
-          // Set first address as default selected
-          if (testAddresses.length > 0) {
-            setSelectedAddressId(testAddresses[0].id);
-          }
+          console.warn('No user data found in AsyncStorage - User not logged in');
+          setUser(null);
+          setAddresses([]);
         }
       } catch (error) {
         console.error('Error fetching addresses:', error);
         Alert.alert('Error', 'Failed to fetch addresses');
+        setAddresses([]);
       } finally {
         setLoading(false);
       }
@@ -140,7 +217,7 @@ const ChooseAddressScreen = ({ navigation }) => {
               {item.address}, {item.landmark}
             </Text>
             <Text style={styles.addressText}>
-              {item.city}, {item.state} - {item.pincode}
+              {item.city_name || item.city}, {item.state_name || item.state} - {item.pincode}
             </Text>
             <Text style={styles.addressText}>Mobile: {item.mobile}</Text>
 
@@ -224,7 +301,7 @@ const ChooseAddressScreen = ({ navigation }) => {
     );
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     // Find the selected address
     const selectedAddress = addresses.find(
       addr => addr.id === selectedAddressId,
@@ -232,6 +309,21 @@ const ChooseAddressScreen = ({ navigation }) => {
     if (selectedAddress) {
       console.log('=== NAVIGATING TO CHECKOUT ===');
       console.log('Selected Address:', selectedAddress);
+      
+      // Save selected address to AsyncStorage for home page
+      await AsyncStorage.setItem('selectedAddress', JSON.stringify({
+        id: selectedAddress.id,
+        name: selectedAddress.name,
+        address: selectedAddress.address,
+        mobile: selectedAddress.mobile,
+        email: selectedAddress.email || 'user@example.com',
+        pincode: selectedAddress.pincode,
+        city: selectedAddress.city,
+        state: selectedAddress.state,
+        landmark: selectedAddress.landmark,
+        latitude: selectedAddress.latitude,
+        longitude: selectedAddress.longitude,
+      }));
       
       // Navigate to CheckOut page with selected address details
       navigation.navigate('CheckOut', {
@@ -287,9 +379,14 @@ const ChooseAddressScreen = ({ navigation }) => {
               source={require('../Assets/Images/No-Address.png')}
               style={styles.image}
             />
-            <Text style={styles.title}>No Address Found</Text>
+            <Text style={styles.title}>
+              {user ? 'No Address Found' : 'Login Required'}
+            </Text>
             <Text style={styles.subtitle}>
-              Add your first address to continue
+              {user 
+                ? 'Add your first address to continue'
+                : 'Please login to view your addresses'
+              }
             </Text>
           </View>
         ) : (
@@ -301,6 +398,14 @@ const ChooseAddressScreen = ({ navigation }) => {
               removeClippedSubviews={false}
               initialNumToRender={10}
               maxToRenderPerBatch={10}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#F70D24']} // Android
+                  tintColor="#F70D24" // iOS
+                />
+              }
               windowSize={10}
               contentContainerStyle={{ paddingBottom: 20 }}
               style={{ width: '100%' }}
@@ -316,10 +421,14 @@ const ChooseAddressScreen = ({ navigation }) => {
                 navigation.navigate('AddAddress', {
                   user_id: user.user_id || user.id,
                 });
+              } else {
+                navigation.navigate('Login');
               }
             }}
           >
-            <Text style={styles.addButtonText}>Add New Address</Text>
+            <Text style={styles.addButtonText}>
+              {user ? 'Add New Address' : 'Login'}
+            </Text>
           </TouchableOpacity>
 
           {addresses.length > 0 && (

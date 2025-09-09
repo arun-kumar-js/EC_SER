@@ -123,14 +123,14 @@ const AddAddress = ({ route, navigation }) => {
 
   // Fetch states function
   const fetchStates = () => {
-    const formData = new FormData();
-    formData.append('accesskey', API_ACCESS_KEY);
+      const formData = new FormData();
+      formData.append('accesskey', API_ACCESS_KEY);
 
-    axios
-      .post(ADD_NEW_ADDRESS_STATE, formData)
-      .then(res => {
-        console.log('Fetched states:', res.data);
-        setStates(res.data.data || []);
+      axios
+        .post(ADD_NEW_ADDRESS_STATE, formData)
+        .then(res => {
+          console.log('Fetched states:', res.data);
+          setStates(res.data.data || []);
         setIsLoading(false);
       })
       .catch(err => {
@@ -465,7 +465,7 @@ const AddAddress = ({ route, navigation }) => {
     setCityModalVisible(false);
   };
 
-  const renderModalItem = (item, onSelect) => (
+const renderModalItem = (item, onSelect) => (
     <TouchableOpacity
       style={{
         paddingVertical: hp('1.5%'),
@@ -703,11 +703,11 @@ const AddAddress = ({ route, navigation }) => {
               />
             </MapView>
           ) : (
-            <Image
-              source={{ uri: 'https://placehold.co/800x400/f0f0f0/666666' }}
-              style={styles.mapImage}
-              alt="Map"
-            />
+          <Image
+            source={{ uri: 'https://placehold.co/800x400/f0f0f0/666666' }}
+            style={styles.mapImage}
+            alt="Map"
+          />
           )}
         </View>
       </ScrollView>

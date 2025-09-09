@@ -11,18 +11,17 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getNotificationList, markNotificationAsRead } from '../Fuctions/NotificationService';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import axios from 'axios';
+import { API_BASE_URL } from '../config/config';
 
 const NotificationScreen = ({ navigation }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [imageBaseUrl, setImageBaseUrl] = useState('');
 
   useEffect(() => {
     loadNotifications();
@@ -33,38 +32,35 @@ const NotificationScreen = ({ navigation }) => {
       setLoading(true);
       console.log('=== LOADING NOTIFICATIONS ===');
       
-      // Get user ID from AsyncStorage
-      const userData = await AsyncStorage.getItem('userData');
-      if (!userData) {
-        Alert.alert('Error', 'User not logged in');
-        navigation.goBack();
-        return;
-      }
+      const formdata = new FormData();
+      formdata.append('get-notifications', '1');
+      formdata.append('accesskey', '90336');
 
-      const user = JSON.parse(userData);
-      const userId = user.id || user.user_id;
-      
-      if (!userId) {
-        Alert.alert('Error', 'User ID not found');
-        navigation.goBack();
-        return;
-      }
+      console.log('Request URL:', `${API_BASE_URL}sections.php`);
+      console.log('Form Data:', formdata);
 
-      console.log('User ID for notifications:', userId);
+      const response = await axios.post(`${API_BASE_URL}sections.php`, formdata, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 10000, // 10 second timeout
+      });
 
-      const result = await getNotificationList(userId);
-      
-      if (result.success) {
-        setNotifications(result.data);
-        setImageBaseUrl(result.imageUrl);
-        console.log('Notifications loaded:', result.data.length);
+      console.log('=== NOTIFICATION API RESPONSE ===');
+      console.log('Response Status:', response.status);
+      console.log('Response Data:', response.data);
+
+      if (response.data && response.data.data) {
+        setNotifications(response.data.data);
+        console.log('Notifications loaded:', response.data.data.length);
       } else {
-        Alert.alert('Error', result.message);
+        console.log('No notifications data found');
         setNotifications([]);
       }
     } catch (error) {
       console.error('Error loading notifications:', error);
-      Alert.alert('Error', 'Failed to load notifications');
+      console.error('Error details:', error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to load notifications. Please check your internet connection.');
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -79,19 +75,16 @@ const NotificationScreen = ({ navigation }) => {
 
   const handleNotificationPress = async (notification) => {
     try {
-      // Mark notification as read
-      const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const user = JSON.parse(userData);
-        const userId = user.id || user.user_id;
-        
-        if (userId) {
-          await markNotificationAsRead(notification.id, userId);
-        }
-      }
-      
-      // You can add navigation logic here if needed
       console.log('Notification pressed:', notification);
+      
+      // You can add navigation logic here based on notification type
+      if (notification.type === 'promotion') {
+        // Navigate to promotions or specific screen
+        console.log('Promotion notification pressed');
+      } else if (notification.type === '') {
+        // Handle default notification
+        console.log('Default notification pressed');
+      }
     } catch (error) {
       console.error('Error handling notification press:', error);
     }
@@ -99,6 +92,8 @@ const NotificationScreen = ({ navigation }) => {
 
   const formatDate = (dateString) => {
     try {
+      if (!dateString) return 'Recently';
+      
       const date = new Date(dateString);
       const now = new Date();
       const diffInHours = (now - date) / (1000 * 60 * 60);
@@ -113,7 +108,7 @@ const NotificationScreen = ({ navigation }) => {
         return date.toLocaleDateString();
       }
     } catch (error) {
-      return dateString;
+      return 'Recently';
     }
   };
 
@@ -124,23 +119,24 @@ const NotificationScreen = ({ navigation }) => {
     >
       <View style={styles.notificationContent}>
         <View style={styles.notificationHeader}>
-          <Text style={styles.notificationTitle}>{item.title}</Text>
+          <Text style={styles.notificationTitle}>{item.name}</Text>
           <Text style={styles.notificationTime}>
-            {formatDate(item.created)}
+            {formatDate(item.created_at)}
           </Text>
         </View>
         
-        {item.message && (
-          <Text style={styles.notificationMessage}>{item.message}</Text>
+        {item.subtitle && (
+          <Text style={styles.notificationMessage}>{item.subtitle}</Text>
         )}
         
         {item.image && (
           <Image
-            source={{ uri: `${imageBaseUrl}${item.image}` }}
+            source={{ uri: item.image }}
             style={styles.notificationImage}
             resizeMode="cover"
           />
         )}
+        
       </View>
     </TouchableOpacity>
   );
@@ -300,6 +296,22 @@ const styles = StyleSheet.create({
     height: hp('15%'),
     borderRadius: wp('1%'),
     marginTop: hp('1%'),
+  },
+  notificationFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: hp('1%'),
+  },
+  typeBadge: {
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.5%'),
+    borderRadius: wp('2%'),
+  },
+  typeText: {
+    color: '#fff',
+    fontSize: wp('2.5%'),
+    fontFamily: 'Montserrat-Bold',
+    fontWeight: 'bold',
   },
   emptyContainer: {
     flex: 1,

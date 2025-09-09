@@ -17,7 +17,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { getTimeSlots } from '../Fuctions/TimeSlotService';
 import { getWalletBalance } from '../Fuctions/UserDataService';
 import { placeOrder } from '../Fuctions/OrderService';
-import { clearCart } from '../Fuctions/CartService';
+import { clearCart, fetchCartItems, getCartSummary } from '../Fuctions/CartService';
 import { createBillPlzBill, createBillPlzBillDirect, testBillPlzAPI } from '../Fuctions/BillPlzService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
@@ -36,16 +36,110 @@ const PaymentScreen = ({ route }) => {
   const [user, setUser] = useState(null);
   const [remainingAmount, setRemainingAmount] = useState(0);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
+  const [cartTotals, setCartTotals] = useState({
+    subtotal: 0,
+    tax: 0,
+    deliveryCharge: 0,
+    total: 0,
+    taxable_amount: 0
+  });
 
   // Get checkout data from route params
   const checkoutData = route.params || {};
+  
+  // Debug: Log the received checkout data
+  console.log('=== PAYMENT SCREEN CHECKOUT DATA ===');
+  console.log('Selected Address:', checkoutData.selectedAddress);
+  console.log('Delivery Method:', checkoutData.deliveryMethod);
+  console.log('Store Settings:', checkoutData.storeSettings);
+  console.log('User:', checkoutData.user);
 
   const deliveryDays = [];
+
+  // Load cart data from SQLite storage
+  const loadCartData = async () => {
+    try {
+      console.log('=== LOADING CART DATA FROM SQLITE ===');
+      const cartData = await fetchCartItems();
+      console.log('Cart items from SQLite:', cartData);
+      
+      if (cartData && cartData.length > 0) {
+        setCartItems(cartData);
+        
+        // Calculate totals
+        console.log('=== CALCULATING TOTALS ===');
+        const subtotal = cartData.reduce((sum, item) => {
+          // Handle price with currency symbols or without
+          let priceStr = item.price || item.variants?.[0]?.product_price || item.product_price || '0';
+          // Remove currency symbols
+          priceStr = priceStr.toString().replace(/[₹$€£¥RM]/g, '').trim();
+          const price = parseFloat(priceStr) || 0;
+          const quantity = parseInt(item.quantity || 0);
+          const itemTotal = price * quantity;
+          console.log(`Item: ${item.name || 'Unknown'}, Price String: ${item.price}, Parsed Price: ${price}, Qty: ${quantity}, Total: ${itemTotal}`);
+          return sum + itemTotal;
+        }, 0);
+        console.log('Calculated subtotal:', subtotal);
+        
+        // Use checkout data for delivery charge and tax if available, otherwise use defaults
+        const deliveryCharge = checkoutData.totals?.deliveryCharge || checkoutData.storeSettings?.delivery_charge;
+        const taxRate = (checkoutData.storeSettings?.tax) / 100; // Convert percentage to decimal
+        const taxableAmount = subtotal;
+        const tax = taxableAmount * taxRate;
+        const total = subtotal + deliveryCharge + tax;
+        
+        console.log('Delivery charge:', deliveryCharge);
+        console.log('Tax rate:', taxRate);
+        console.log('Tax amount:', tax);
+        console.log('Total:', total);
+        
+        const totals = {
+          subtotal: subtotal,
+          tax: tax,
+          deliveryCharge: deliveryCharge,
+          total: total,
+          taxable_amount: taxableAmount
+        };
+        
+        console.log('Calculated totals:', totals);
+        console.log('Setting cartTotals state with:', totals);
+        setCartTotals(totals);
+      } else {
+        console.log('No cart items found');
+        setCartItems([]);
+        setCartTotals({
+          subtotal: 0,
+          tax: 0,
+          deliveryCharge: 0,
+          total: 0,
+          taxable_amount: 0
+        });
+      }
+    } catch (error) {
+      console.error('Error loading cart data:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load cart data'
+      });
+    }
+  };
+
+  // Refresh cart data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadCartData();
+    }, [])
+  );
 
   // Load time slots and wallet balance on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Load cart data from SQLite
+        await loadCartData();
+        
         // Set current date as default
         const today = new Date();
         const formattedToday = today.toLocaleDateString('en-US', {
@@ -126,13 +220,31 @@ const PaymentScreen = ({ route }) => {
         orderId: `ORDER_${Date.now()}`, // Generate temporary order ID
         user: user,
         selectedAddress: checkoutData.selectedAddress,
-        totals: checkoutData.totals,
+        totals: cartTotals,
         deliveryMethod: checkoutData.deliveryMethod,
         selectedDate: selectedDate,
         selectedDeliveryTime: selectedDeliveryTime,
+        timeSlots: timeSlots,
         deliveryNotes: deliveryNotes,
         storeSettings: checkoutData.storeSettings,
+        cartItems: cartItems,
       };
+
+      // Console log the BillPlz order form data
+      console.log('=== BILLPLZ ORDER FORM DATA ===');
+      console.log('📋 BillPlz Order Data:', JSON.stringify(orderData, null, 2));
+      console.log('🆔 Order ID:', orderData.orderId);
+      console.log('📍 Selected Address:', orderData.selectedAddress);
+      console.log('🚚 Delivery Method:', orderData.deliveryMethod);
+      console.log('📅 Selected Date:', orderData.selectedDate);
+      console.log('⏰ Selected Time:', orderData.selectedDeliveryTime);
+      console.log('📝 Delivery Notes:', orderData.deliveryNotes);
+      console.log('🏪 Store Settings:', orderData.storeSettings);
+      console.log('👤 User Data:', orderData.user);
+      console.log('🧾 Cart Totals:', orderData.totals);
+      console.log('🛒 Cart Items Count:', orderData.cartItems?.length || 0);
+      console.log('🛒 Cart Items:', orderData.cartItems);
+      console.log('================================');
 
       console.log('=== LAUNCHING BILLPLZ PAYMENT ===');
       console.log('Order Data:', orderData);
@@ -247,7 +359,7 @@ const PaymentScreen = ({ route }) => {
           console.error('❌ Error clearing cart:', error);
         }
 
-        // Show order confirmation toast with order ID
+        // Show order confirmation toast with order ID for 1 second
         const orderId = result.data?.order_id || result.orderId || 'N/A';
         Toast.show({
           type: 'success',
@@ -256,13 +368,21 @@ const PaymentScreen = ({ route }) => {
           visibilityTime: 1000,
         });
 
-        // Navigate to order confirmation after 1 second
+        // Navigate to order confirmation after 1 second (non-returnable)
         setTimeout(() => {
-          navigation.replace('OrderConfirmed', {
-            orderId: orderId,
-            orderData: finalOrderData,
-            orderResult: result.data,
-            paymentMethod: 'BillPlz',
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'OrderConfirmed',
+                params: {
+                  orderId: orderId,
+                  orderData: finalOrderData,
+                  orderResult: result.data,
+                  paymentMethod: 'BillPlz',
+                },
+              },
+            ],
           });
         }, 1000);
       } else {
@@ -312,14 +432,14 @@ const PaymentScreen = ({ route }) => {
 
   // Calculate remaining amount when wallet balance or useWalletBalance changes
   useEffect(() => {
-    const totalAmount = checkoutData.totals?.total || 0;
+    const totalAmount = cartTotals.total || 0;
     if (useWalletBalance) {
       const remaining = Math.max(0, totalAmount - walletBalance);
       setRemainingAmount(remaining);
     } else {
       setRemainingAmount(totalAmount);
     }
-  }, [useWalletBalance, walletBalance, checkoutData.totals?.total]);
+  }, [useWalletBalance, walletBalance, cartTotals.total]);
 
   const calculateRemainingAmount = () => {
     return remainingAmount;
@@ -331,7 +451,7 @@ const PaymentScreen = ({ route }) => {
 
     // If wallet is being used and covers full amount, clear payment method
     if (newWalletState) {
-      const totalAmount = checkoutData.totals?.total || 0;
+      const totalAmount = cartTotals.total || 0;
       if (walletBalance >= totalAmount) {
         setSelectedPaymentMethod('');
       }
@@ -339,16 +459,65 @@ const PaymentScreen = ({ route }) => {
   };
 
   const handlePlaceOrder = async () => {
-    if (remainingAmount > 0 && !selectedPaymentMethod) {
-      Alert.alert(
-        'Error',
-        'Please select a payment method for the remaining amount',
-      );
+    // Validate selected date
+    if (!selectedDate) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please select a delivery date',
+        visibilityTime: 3000,
+      });
       return;
     }
 
+    // Check if selected date is in the past
+    const today = new Date();
+    const selectedDateObj = new Date(selectedDate);
+    const isToday = today.toDateString() === selectedDateObj.toDateString();
+    const isPast = selectedDateObj < today && !isToday;
+    
+    if (isPast) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid Date',
+        text2: 'Cannot select past dates for delivery',
+        visibilityTime: 3000,
+      });
+      return;
+    }
+
+    // Validate selected time
     if (!selectedDeliveryTime) {
-      Alert.alert('Error', 'Please select a delivery time');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please select a delivery time',
+        visibilityTime: 3000,
+      });
+      return;
+    }
+
+    // Check if selected time slot is disabled (for today's orders)
+    if (isToday) {
+      const selectedSlot = timeSlots.find(slot => slot.id === selectedDeliveryTime);
+      if (selectedSlot && isTimeSlotDisabled(selectedSlot)) {
+        Toast.show({
+          type: 'error',
+          text1: 'Time Slot Unavailable',
+          text2: 'The selected time slot is no longer available',
+          visibilityTime: 3000,
+        });
+        return;
+      }
+    }
+
+    if (remainingAmount > 0 && !selectedPaymentMethod) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please select a payment method for the remaining amount',
+        visibilityTime: 3000,
+      });
       return;
     }
 
@@ -366,13 +535,7 @@ const PaymentScreen = ({ route }) => {
       return;
     }
 
-    // Show loading indicator for COD payments
-    Alert.alert(
-      'Processing Order',
-      'Please wait while we process your order...',
-      [],
-      { cancelable: false },
-    );
+    // Process order without showing alert
 
     try {
       // Prepare order data
@@ -381,14 +544,34 @@ const PaymentScreen = ({ route }) => {
         deliveryMethod: checkoutData.deliveryMethod,
         selectedDate: selectedDate,
         selectedDeliveryTime: selectedDeliveryTime,
+        timeSlots: timeSlots,
         selectedPaymentMethod: selectedPaymentMethod,
         useWalletBalance: useWalletBalance,
         walletBalance: walletBalance,
-        totals: checkoutData.totals,
+        totals: cartTotals,
         storeSettings: checkoutData.storeSettings,
         deliveryNotes: deliveryNotes,
         user: user,
+        cartItems: cartItems,
       };
+
+      // Console log the complete order form data
+      console.log('=== ORDER PLACE FORM DATA ===');
+      console.log('📋 Complete Order Data:', JSON.stringify(orderData, null, 2));
+      console.log('📍 Selected Address:', orderData.selectedAddress);
+      console.log('🚚 Delivery Method:', orderData.deliveryMethod);
+      console.log('📅 Selected Date:', orderData.selectedDate);
+      console.log('⏰ Selected Time:', orderData.selectedDeliveryTime);
+      console.log('💳 Payment Method:', orderData.selectedPaymentMethod);
+      console.log('💰 Wallet Balance Used:', orderData.useWalletBalance);
+      console.log('💵 Wallet Balance Amount:', orderData.walletBalance);
+      console.log('🧾 Cart Totals:', orderData.totals);
+      console.log('🏪 Store Settings:', orderData.storeSettings);
+      console.log('📝 Delivery Notes:', orderData.deliveryNotes);
+      console.log('👤 User Data:', orderData.user);
+      console.log('🛒 Cart Items Count:', orderData.cartItems?.length || 0);
+      console.log('🛒 Cart Items:', orderData.cartItems);
+      console.log('================================');
 
       // Call order placement API
       const result = await placeOrder(orderData);
@@ -411,28 +594,47 @@ const PaymentScreen = ({ route }) => {
           console.error('❌ Error clearing cart:', error);
         }
 
-        // Navigate directly to order confirmation with result data (replace current screen)
-        navigation.replace('OrderConfirmed', {
-          orderId: result.data?.order_id || result.orderId || 'N/A',
-          orderData: orderData,
-          orderResult: result.data,
+        // Show order confirmation toast for 1 second
+        const orderId = result.data?.order_id || result.orderId || 'N/A';
+        Toast.show({
+          type: 'success',
+          text1: 'Order Placed Successfully!',
+          text2: `Order ID: ${orderId}`,
+          visibilityTime: 1000,
         });
+
+        // Navigate to order confirmation after 1 second (non-returnable)
+        setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'OrderConfirmed',
+                params: {
+                  orderId: orderId,
+                  orderData: orderData,
+                  orderResult: result.data,
+                },
+              },
+            ],
+          });
+        }, 1000);
       } else {
-        Alert.alert(
-          'Order Failed',
-          result.message ||
-            result.data?.message ||
-            'Failed to place order. Please try again.',
-          [{ text: 'OK' }],
-        );
+        Toast.show({
+          type: 'error',
+          text1: 'Order Failed',
+          text2: result.message || result.data?.message || 'Failed to place order. Please try again.',
+          visibilityTime: 3000,
+        });
       }
     } catch (error) {
       console.error('Error placing order:', error);
-      Alert.alert(
-        'Error',
-        'An error occurred while placing your order. Please try again.',
-        [{ text: 'OK' }],
-      );
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'An error occurred while placing your order. Please try again.',
+        visibilityTime: 3000,
+      });
     }
   };
 
@@ -441,14 +643,97 @@ const PaymentScreen = ({ route }) => {
       console.log('=== TESTING BILLPLZ API FROM PAYMENT SCREEN ===');
       const result = await testBillPlzAPI();
       console.log('Test result:', result);
-      Alert.alert('Test Complete', 'Check console for detailed results');
+      Toast.show({
+        type: 'success',
+        text1: 'Test Complete',
+        text2: 'Check console for detailed results',
+        visibilityTime: 2000,
+      });
     } catch (error) {
       console.error('Test failed:', error);
-      Alert.alert('Test Failed', 'Check console for error details');
+      Toast.show({
+        type: 'error',
+        text1: 'Test Failed',
+        text2: 'Check console for error details',
+        visibilityTime: 2000,
+      });
     }
   };
 
+  // Check if a time slot should be disabled based on current time
+  const isTimeSlotDisabled = (timeSlot) => {
+    // Only apply restrictions if today is selected
+    if (!selectedDate) return false;
+    
+    const today = new Date();
+    const selectedDateObj = new Date(selectedDate);
+    
+    // Check if selected date is today
+    const isToday = today.toDateString() === selectedDateObj.toDateString();
+    
+    if (!isToday) return false;
+    
+    const currentTime = today.getHours() * 100 + today.getMinutes(); // Convert to HHMM format
+    
+    // Get time slot start time
+    const fromTime = timeSlot.from_time || timeSlot.start_time;
+    if (!fromTime) return false;
+    
+    // Parse time slot start time (format: "14:00:00" or "08:00:00")
+    const [hours, minutes] = fromTime.split(':').map(Number);
+    const timeSlotStart = hours * 100 + minutes;
+    
+    // Apply restrictions:
+    // 1. If current time is 2pm (14:00) or later, disable 8am slot (08:00)
+    // 2. If current time is 8am (08:00) or later, disable 8am slot (08:00)
+    // 3. If current time is past the time slot start time, disable that slot
+    
+    // Disable 8am slot if current time is 8am or later
+    if (timeSlotStart === 800 && currentTime >= 800) {
+      return true;
+    }
+    
+    // Disable any time slot if current time is past its start time
+    if (currentTime >= timeSlotStart) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  // Effect to clear selected time slot if it becomes disabled
+  useEffect(() => {
+    if (selectedDeliveryTime && selectedDate) {
+      const selectedSlot = timeSlots.find(slot => slot.id === selectedDeliveryTime);
+      if (selectedSlot && isTimeSlotDisabled(selectedSlot)) {
+        setSelectedDeliveryTime('');
+        Toast.show({
+          type: 'info',
+          text1: 'Time Slot Unavailable',
+          text2: 'The selected time slot is no longer available for today',
+          visibilityTime: 3000,
+        });
+      }
+    }
+  }, [selectedDate, selectedDeliveryTime, timeSlots]);
+
   const handleDateSelect = date => {
+    // Check if the selected date is in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+    const selectedDateOnly = new Date(date);
+    selectedDateOnly.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+    
+    if (selectedDateOnly < today) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid Date',
+        text2: 'Cannot select past dates for delivery',
+        visibilityTime: 3000,
+      });
+      return;
+    }
+    
     const formattedDate = date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -552,19 +837,19 @@ const PaymentScreen = ({ route }) => {
             </TouchableOpacity>
           </View>
           <Text style={styles.walletBalance}>
-            Total Balance: ₹{walletBalance.toFixed(2)}
+            Total Balance: RM{walletBalance.toFixed(2)}
           </Text>
           {useWalletBalance && (
             <View style={styles.walletUsageContainer}>
               <Text style={styles.walletUsageText}>
-                Wallet Used: ₹
+                Wallet Used: RM
                 {Math.min(
                   walletBalance,
-                  checkoutData.totals?.total || 0,
+                  cartTotals.total || 0,
                 ).toFixed(2)}
               </Text>
               <Text style={styles.remainingAmountText}>
-                Remaining Amount: ₹{remainingAmount.toFixed(2)}
+                Remaining Amount: RM{remainingAmount.toFixed(2)}
               </Text>
             </View>
           )}
@@ -604,20 +889,36 @@ const PaymentScreen = ({ route }) => {
 
           {/* Time Slots - Moved to bottom */}
           <Text style={styles.cardTitle}>Delivery Time Slot</Text>
-          {timeSlots.map(timeSlot => (
-            <TouchableOpacity
-              key={timeSlot.id}
-              style={styles.radioOption}
-              onPress={() => setSelectedDeliveryTime(timeSlot.id)}
-            >
-              <View style={styles.radioButton}>
-                {selectedDeliveryTime === timeSlot.id && (
-                  <View style={styles.radioDot} />
-                )}
-              </View>
-              <Text style={styles.radioText}>{timeSlot.title}</Text>
-            </TouchableOpacity>
-          ))}
+          {timeSlots.map(timeSlot => {
+            const isDisabled = isTimeSlotDisabled(timeSlot);
+            return (
+              <TouchableOpacity
+                key={timeSlot.id}
+                style={[
+                  styles.radioOption,
+                  isDisabled && styles.disabledOption
+                ]}
+                onPress={() => !isDisabled && setSelectedDeliveryTime(timeSlot.id)}
+                disabled={isDisabled}
+              >
+                <View style={[
+                  styles.radioButton,
+                  isDisabled && styles.disabledRadioButton
+                ]}>
+                  {selectedDeliveryTime === timeSlot.id && !isDisabled && (
+                    <View style={styles.radioDot} />
+                  )}
+                </View>
+                <Text style={[
+                  styles.radioText,
+                  isDisabled && styles.disabledText
+                ]}>
+                  {timeSlot.title}
+                  {isDisabled && ' (Not Available)'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Payment Methods */}
@@ -625,7 +926,7 @@ const PaymentScreen = ({ route }) => {
           <Text style={styles.cardTitle}>Payment Method</Text>
           {remainingAmount > 0 && (
             <Text style={styles.remainingAmountLabel}>
-              Select payment method for remaining amount: ₹
+              Select payment method for remaining amount: RM
               {remainingAmount.toFixed(2)}
             </Text>
           )}
@@ -662,15 +963,7 @@ const PaymentScreen = ({ route }) => {
         </View>
 
         {/* Test BillPlz API Button */}
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={handleTestBillPlzAPI}
-            activeOpacity={1}
-          >
-            <Text style={styles.testButtonText}>Test BillPlz API</Text>
-          </TouchableOpacity>
-        </View>
+       
       </ScrollView>
 
       {/* Bottom Navigation */}
@@ -678,10 +971,10 @@ const PaymentScreen = ({ route }) => {
         <View style={styles.totalSection}>
           <Icon name="information-circle-outline" size={20} color="#666" />
           <Text style={styles.totalText}>
-            Total : ₹
+            Total : RM
             {useWalletBalance
               ? remainingAmount.toFixed(2)
-              : checkoutData.totals?.total?.toFixed(2) || '0.00'}
+              : cartTotals.total?.toFixed(2) || '0.00'}
           </Text>
         </View>
         <TouchableOpacity
@@ -774,42 +1067,35 @@ const PaymentScreen = ({ route }) => {
               <View style={styles.orderSummaryRow}>
                 <Text style={styles.summaryLabel}>Items Amount</Text>
                 <Text style={styles.summaryValue}>
-                  ₹
-                  {checkoutData.totals?.taxable_amount?.toFixed(2) ||
-                    (checkoutData.totals?.subtotal && checkoutData.totals?.tax
-                      ? (
-                          checkoutData.totals.subtotal - checkoutData.totals.tax
-                        ).toFixed(2)
-                      : checkoutData.totals?.subtotal?.toFixed(2)) ||
-                    '0.00'}
+                  RM{cartTotals.taxable_amount?.toFixed(2) || cartTotals.subtotal?.toFixed(2) || '0.00'}
                 </Text>
               </View>
 
               <View style={styles.orderSummaryRow}>
                 <Text style={styles.summaryLabel}>Delivery Charge</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{checkoutData.totals?.deliveryCharge?.toFixed(2) || '0.00'}
+                  RM{cartTotals.deliveryCharge?.toFixed(2) || '0.00'}
                 </Text>
               </View>
 
               <View style={styles.orderSummaryRow}>
                 <Text style={styles.summaryLabel}>Tax</Text>
                 <Text style={styles.summaryValue}>
-                  + ₹{checkoutData.totals?.tax?.toFixed(2) || '0.00'}
+                  + RM{cartTotals.tax?.toFixed(2) || '0.00'}
                 </Text>
               </View>
 
               <View style={styles.orderSummaryRow}>
                 <Text style={styles.summaryLabel}>Total</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{checkoutData.totals?.total?.toFixed(2) || '0.00'}
+                  RM{cartTotals.total?.toFixed(2) || '0.00'}
                 </Text>
               </View>
 
               <View style={styles.grandTotalRow}>
                 <Text style={styles.grandTotalLabel}>Grand Total :</Text>
                 <Text style={styles.grandTotalValue}>
-                  ₹{checkoutData.totals?.total?.toFixed(2) || '0.00'}
+                  RM{cartTotals.total?.toFixed(2) || '0.00'}
                 </Text>
               </View>
             </View>
@@ -1025,6 +1311,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     fontFamily: 'Montserrat',
+  },
+  disabledOption: {
+    opacity: 0.5,
+  },
+  disabledRadioButton: {
+    borderColor: '#ccc',
+    backgroundColor: '#f5f5f5',
+  },
+  disabledText: {
+    color: '#999',
   },
   notesLabel: {
     fontSize: 14,
@@ -1331,17 +1627,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 8,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#000',
-    fontFamily: 'Montserrat',
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: '#000',
-    fontFamily: 'Montserrat',
-    textAlign: 'right',
   },
   grandTotalRow: {
     flexDirection: 'row',

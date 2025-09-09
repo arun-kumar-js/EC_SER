@@ -11,6 +11,8 @@ import {
   Modal,
   Animated,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -21,14 +23,12 @@ import {
 } from 'react-native-responsive-screen';
 import { fetchWishlistItems, removeFromWishlistItem } from '../../Fuctions/WishlistService';
 import TabHeader from '../../Components/TabHeader';
-import SidebarModal from '../../Components/SidebarModal';
 
 const WishList = () => {
   const navigation = useNavigation();
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [drawerVisible, setDrawerVisible] = useState(false);
 
   // Load wishlist items when screen comes into focus
   useFocusEffect(
@@ -37,14 +37,6 @@ const WishList = () => {
     }, [])
   );
 
-  // Drawer functions
-  const openDrawer = () => {
-    setDrawerVisible(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerVisible(false);
-  };
 
   const loadWishlistItems = async () => {
     try {
@@ -168,13 +160,67 @@ const WishList = () => {
   );
 
   return (
-    <View style={{ flex: 1 }}>
-      <TabHeader 
-        title="Wishlist"
-        onMenuPress={openDrawer}
-        onCartPress={() => navigation.navigate('Cart')}
-        showLocation={false}
-      />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        {/* Custom Header */}
+        <View style={styles.header}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: wp('4%') }}>
+            {/* Drawer swipe indicator - clickable */}
+            <TouchableOpacity 
+              style={styles.menuButton}
+              onPress={() => {
+                console.log('Menu button pressed in WishList');
+                
+                // Try to get the drawer navigation
+                try {
+                  const drawerNavigation = navigation.getParent('Drawer');
+                  if (drawerNavigation && drawerNavigation.openDrawer) {
+                    console.log('Opening drawer via getParent(Drawer)');
+                    drawerNavigation.openDrawer();
+                    return;
+                  }
+                } catch (error) {
+                  console.log('Error with getParent(Drawer):', error);
+                }
+                
+                // Try alternative approach - get all parents
+                try {
+                  let currentNav = navigation;
+                  while (currentNav) {
+                    if (currentNav.openDrawer) {
+                      console.log('Opening drawer via parent navigation');
+                      currentNav.openDrawer();
+                      return;
+                    }
+                    currentNav = currentNav.getParent();
+                  }
+                } catch (error) {
+                  console.log('Error with parent navigation:', error);
+                }
+                
+                console.log('Could not find drawer navigation');
+              }}
+              activeOpacity={0.7}
+            >
+              <Image 
+                source={require('../../Assets/icon/menu.png')} 
+                style={styles.menuIcon}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Wishlist</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Cart')}
+              style={{ position: 'absolute', right: wp('4%'), padding: wp('2%') }}
+            >
+              <Icon name="cart" size={wp('6%')} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
       {wishlistItems.length === 0 ? (
         renderEmptyState()
       ) : (
@@ -193,14 +239,8 @@ const WishList = () => {
           }
         />
       )}
-
-      {/* Sidebar Modal */}
-      <SidebarModal
-        visible={drawerVisible}
-        onClose={closeDrawer}
-        navigation={navigation}
-      />
-    </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -211,14 +251,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  header: {
+    backgroundColor: '#EF3340',
+    paddingVertical: hp('2%'),
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  headerTitle: {
+    fontSize: wp('5%'),
+    fontWeight: 'bold',
+    color: '#fff',
+    fontFamily: 'Poppins',
+  },
+  menuButton: {
+    position: 'absolute',
+    left: wp('4%'),
+    padding: wp('2%'),
+    borderRadius: wp('2%'),
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  menuIcon: {
+    width: wp('6%'),
+    height: wp('6%'),
+    tintColor: '#fff',
+  },
   listContainer: {
-    padding: wp('4%'),
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('2%'),
   },
   itemContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: wp('3%'),
-    marginBottom: hp('2%'),
+    borderRadius: wp('4%'),
+    marginBottom: hp('1%'),
     padding: wp('3%'),
     shadowColor: '#000',
     shadowOffset: {
@@ -226,8 +294,8 @@ const styles = StyleSheet.create({
       height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowRadius: wp('2%'),
+    elevation: 4,
   },
   productImage: {
     width: wp('25%'),

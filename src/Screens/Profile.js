@@ -10,6 +10,8 @@ import {
   StatusBar,
   Alert,
   Modal,
+  FlatList,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,10 +20,16 @@ import { updateUserProfile } from '../Fuctions/UserProfileService';
 import Toast from 'react-native-toast-message';
 import MapView, { Marker, PROVIDER_APPLE } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
+import axios from 'axios';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import {
+  ADD_NEW_ADDRESS_STATE,
+  ADD_NEW_ADDRESS_CITY,
+  API_ACCESS_KEY,
+} from '../config/config';
 
 const ProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
@@ -29,6 +37,7 @@ const ProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [mapLoading, setMapLoading] = useState(true);
   const [currentLocation, setCurrentLocation] = useState({
     latitude: 3.4300291,
     longitude: 101.55816659999999,
@@ -44,11 +53,104 @@ const ProfileScreen = ({ navigation }) => {
     address: '',
     location: '',
     dateOfBirth: '',
+    state_id: '',
+    city_id: '',
+    area_id: '',
   });
+
+  // State and city selection states
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [selectedState, setSelectedState] = useState(null);
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [selectedArea, setSelectedArea] = useState(null);
+  const [stateModalVisible, setStateModalVisible] = useState(false);
+  const [cityModalVisible, setCityModalVisible] = useState(false);
+  const [areaModalVisible, setAreaModalVisible] = useState(false);
 
   useEffect(() => {
     loadUserData();
+    fetchStates();
   }, []);
+
+  const fetchStates = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('accesskey', API_ACCESS_KEY);
+
+      const response = await axios.post(ADD_NEW_ADDRESS_STATE, formData);
+      console.log('Fetched states:', response.data);
+      setStates(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching states:', error);
+    }
+  };
+
+  const fetchCities = async (stateId) => {
+    try {
+      const formData = new FormData();
+      formData.append('accesskey', API_ACCESS_KEY);
+      formData.append('state_id', stateId);
+
+      const response = await axios.post(ADD_NEW_ADDRESS_CITY, formData);
+      console.log('Fetched cities:', response.data);
+      setCities(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+    }
+  };
+
+  const handleStateSelect = (state) => {
+    setSelectedState(state);
+    setSelectedCity(null);
+    setSelectedArea(null);
+    setCities([]);
+    setAreas([]);
+    setStateModalVisible(false);
+
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      state: state.name,
+      state_id: state.id,
+      city: '',
+      city_id: '',
+      area: '',
+      area_id: '',
+    }));
+
+    // Fetch cities for selected state
+    fetchCities(state.id);
+  };
+
+  const handleCitySelect = (city) => {
+    setSelectedCity(city);
+    setSelectedArea(null);
+    setAreas([]);
+    setCityModalVisible(false);
+
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      city: city.name,
+      city_id: city.id,
+      area: '',
+      area_id: '',
+    }));
+  };
+
+  const handleAreaSelect = (area) => {
+    setSelectedArea(area);
+    setAreaModalVisible(false);
+
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      area: area.name,
+      area_id: area.id,
+    }));
+  };
 
   const refreshProfileData = async () => {
     console.log('=== REFRESHING PROFILE DATA ===');
@@ -83,6 +185,7 @@ const ProfileScreen = ({ navigation }) => {
 
   const openMapModal = () => {
     getCurrentLocation();
+    setMapLoading(true);
     setMapModalVisible(true);
   };
 
@@ -137,7 +240,42 @@ const ProfileScreen = ({ navigation }) => {
               address: userResult.data.street || '',
               location: `${userResult.data.street || ''}, ${userResult.data.city_name || ''}, ${userResult.data.state_name || ''}`.replace(/^,\s*|,\s*$/g, ''),
               dateOfBirth: userResult.data.dob || '',
+              state_id: userResult.data.state_id || '',
+              city_id: userResult.data.city_id || '',
+              area_id: userResult.data.area_id || '',
             };
+
+            // Set selected state and city if they exist
+            if (userResult.data.state_id && userResult.data.state_name) {
+              setSelectedState({
+                id: userResult.data.state_id,
+                name: userResult.data.state_name
+              });
+            }
+            if (userResult.data.city_id && userResult.data.city_name) {
+              setSelectedCity({
+                id: userResult.data.city_id,
+                name: userResult.data.city_name
+              });
+            }
+            if (userResult.data.area_id && userResult.data.area_name) {
+              setSelectedArea({
+                id: userResult.data.area_id,
+                name: userResult.data.area_name
+              });
+            }
+
+            // Update current location with user's coordinates
+            if (userResult.data.latitude && userResult.data.longitude) {
+              setCurrentLocation({
+                latitude: parseFloat(userResult.data.latitude),
+                longitude: parseFloat(userResult.data.longitude),
+              });
+              console.log('Updated location from user data:', {
+                latitude: parseFloat(userResult.data.latitude),
+                longitude: parseFloat(userResult.data.longitude),
+              });
+            }
             
             console.log('=== PROFILE API DATA MAPPING ===');
             console.log('API Response Data:', userResult.data);
@@ -343,15 +481,6 @@ const ProfileScreen = ({ navigation }) => {
           {isEditMode ? 'Edit Profile' : 'Profile'}
         </Text>
         <View style={styles.headerRight}>
-          {isEditMode ? (
-            <TouchableOpacity onPress={toggleEditMode} style={styles.editButton}>
-              <Text style={styles.editButtonText}>Save</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={toggleEditMode} style={styles.editButton}>
-              <Text style={styles.editButtonText}>Edit</Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Image 
               source={require('../Assets/icon/logout.png')} 
@@ -380,103 +509,144 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEditMode && styles.readOnlyInput]}
               value={formData.name}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, name: text })) : undefined}
               placeholder="Enter your name"
+              editable={isEditMode}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEditMode && styles.readOnlyInput]}
               value={formData.email}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
+              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, email: text })) : undefined}
               placeholder="Enter your email"
               keyboardType="email-address"
+              editable={isEditMode}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Mobile No</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEditMode && styles.readOnlyInput]}
               value={formData.mobile}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, mobile: text }))}
+              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, mobile: text })) : undefined}
               placeholder="Enter your mobile number"
               keyboardType="phone-pad"
+              editable={isEditMode}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Select State</Text>
-            <View style={styles.dropdownContainer}>
+            <TouchableOpacity 
+              style={styles.dropdownContainer}
+              onPress={isEditMode ? () => setStateModalVisible(true) : undefined}
+              disabled={!isEditMode}
+            >
               <TextInput
-                style={styles.input}
+                style={[styles.input, !isEditMode && styles.readOnlyInput]}
                 value={formData.state}
                 editable={false}
+                placeholder="Select State"
               />
-              <Image 
-                source={require('../Assets/Images/drop.png')} 
-                style={styles.dropdownArrow}
-                resizeMode="contain"
-              />
-            </View>
+              {isEditMode && (
+                <Image 
+                  source={require('../Assets/Images/drop.png')} 
+                  style={styles.dropdownArrow}
+                  resizeMode="contain"
+                />
+              )}
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Select City</Text>
-            <View style={styles.dropdownContainer}>
+            <TouchableOpacity 
+              style={styles.dropdownContainer}
+              onPress={isEditMode ? () => {
+                if (cities.length > 0) {
+                  setCityModalVisible(true);
+                } else if (selectedState) {
+                  fetchCities(selectedState.id);
+                  setCityModalVisible(true);
+                } else {
+                  Alert.alert('Please select a state first');
+                }
+              } : undefined}
+              disabled={!isEditMode}
+            >
               <TextInput
-                style={styles.input}
+                style={[styles.input, !isEditMode && styles.readOnlyInput]}
                 value={formData.city}
                 editable={false}
+                placeholder="Select City"
               />
-              <Image 
-                source={require('../Assets/Images/drop.png')} 
-                style={styles.dropdownArrow}
-                resizeMode="contain"
-              />
-            </View>
+              {isEditMode && (
+                <Image 
+                  source={require('../Assets/Images/drop.png')} 
+                  style={styles.dropdownArrow}
+                  resizeMode="contain"
+                />
+              )}
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Select Area</Text>
-            <View style={styles.dropdownContainer}>
+            <TouchableOpacity 
+              style={styles.dropdownContainer}
+              onPress={isEditMode ? () => {
+                if (areas.length > 0) {
+                  setAreaModalVisible(true);
+                } else {
+                  Alert.alert('Please select a city first');
+                }
+              } : undefined}
+              disabled={!isEditMode}
+            >
               <TextInput
-                style={styles.input}
+                style={[styles.input, !isEditMode && styles.readOnlyInput]}
                 value={formData.area}
                 editable={false}
+                placeholder="Select Area"
               />
-              <Image 
-                source={require('../Assets/Images/drop.png')} 
-                style={styles.dropdownArrow}
-                resizeMode="contain"
-              />
-            </View>
+              {isEditMode && (
+                <Image 
+                  source={require('../Assets/Images/drop.png')} 
+                  style={styles.dropdownArrow}
+                  resizeMode="contain"
+                />
+              )}
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Zip Code</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEditMode && styles.readOnlyInput]}
               value={formData.zipCode}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, zipCode: text }))}
+              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, zipCode: text })) : undefined}
               placeholder="Enter zip code"
               keyboardType="numeric"
+              editable={isEditMode}
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Address</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, !isEditMode && styles.readOnlyInput]}
               value={formData.address}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, address: text }))}
+              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, address: text })) : undefined}
               placeholder="Enter your address"
               multiline
               numberOfLines={3}
+              editable={isEditMode}
             />
           </View>
 
@@ -485,25 +655,263 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.locationText}>{formData.location}</Text>
           </View>
 
-          {/* Map Placeholder */}
-          <TouchableOpacity style={styles.mapContainer} onPress={openMapModal}>
-            <Text style={styles.mapText}>Map View</Text>
-            <Text style={styles.mapSubtext}>Tap to view/select location</Text>
-          </TouchableOpacity>
+          {/* Map View */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Location Map:</Text>
+            <View style={styles.mapContainer}>
+              {mapLoading && (
+                <View style={styles.mapLoadingContainer}>
+                  <Text style={styles.mapLoadingText}>Loading map...</Text>
+                </View>
+              )}
+              <MapView
+                style={styles.map}
+                provider={PROVIDER_APPLE}
+                region={{
+                  latitude: currentLocation.latitude,
+                  longitude: currentLocation.longitude,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                onPress={(event) => {
+                  const coordinate = event.nativeEvent.coordinate;
+                  setCurrentLocation(coordinate);
+                  setFormData(prev => ({
+                    ...prev,
+                    location: `${coordinate.latitude.toFixed(6)}, ${coordinate.longitude.toFixed(6)}`,
+                  }));
+                }}
+                onMapReady={() => setMapLoading(false)}
+                onError={(error) => {
+                  console.error('Map error:', error);
+                  setMapLoading(false);
+                }}
+                showsUserLocation={true}
+                showsMyLocationButton={false}
+                showsCompass={false}
+                showsScale={false}
+                scrollEnabled={true}
+                zoomEnabled={true}
+                pitchEnabled={false}
+                rotateEnabled={false}
+              >
+                <Marker
+                  coordinate={currentLocation}
+                  title="Your Location"
+                  description="Tap map to update location"
+                  pinColor="#e60023"
+                />
+              </MapView>
+            </View>
+            {isEditMode && (
+              <TouchableOpacity style={styles.mapButton} onPress={openMapModal}>
+                <Text style={styles.mapButtonText}>🗺️ Open Full Map View</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Date Of Birth (Optional)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, !isEditMode && styles.readOnlyInput]}
               value={formData.dateOfBirth}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, dateOfBirth: text }))}
+              onChangeText={isEditMode ? (text) => setFormData(prev => ({ ...prev, dateOfBirth: text })) : undefined}
               placeholder="DD/MM/YYYY"
+              editable={isEditMode}
             />
           </View>
         </View>
 
         {/* Action Buttons - Removed duplicate edit button as header already has edit functionality */}
       </ScrollView>
+
+      {/* Bottom Edit Button */}
+      <View style={styles.bottomButtonContainer}>
+        {isEditMode ? (
+          <TouchableOpacity onPress={toggleEditMode} style={styles.saveButton}>
+            <Text style={styles.saveButtonText}>Save Changes</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={toggleEditMode} style={styles.editButton}>
+            <Text style={styles.editButtonText}>Edit Profile</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Map Modal */}
+      <Modal
+        visible={mapModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={closeMapModal}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <StatusBar barStyle="light-content" backgroundColor="#e60023" />
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={closeMapModal} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Select Location</Text>
+            <TouchableOpacity onPress={() => handleLocationSelect(currentLocation)} style={styles.confirmButton}>
+              <Text style={styles.confirmButtonText}>✓</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.mapWrapper}>
+            {mapLoading && (
+              <View style={styles.fullMapLoadingContainer}>
+                <Text style={styles.fullMapLoadingText}>Loading map...</Text>
+              </View>
+            )}
+            <MapView
+              style={styles.fullMap}
+              provider={PROVIDER_APPLE}
+              region={{
+                latitude: currentLocation.latitude,
+                longitude: currentLocation.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              }}
+              onPress={(event) => {
+                const coordinate = event.nativeEvent.coordinate;
+                setCurrentLocation(coordinate);
+              }}
+              onMapReady={() => setMapLoading(false)}
+              onError={(error) => {
+                console.error('Full map error:', error);
+                setMapLoading(false);
+              }}
+              showsUserLocation={true}
+              showsMyLocationButton={true}
+              showsCompass={true}
+              showsScale={true}
+            >
+              <Marker
+                coordinate={currentLocation}
+                title="Selected Location"
+                description="Tap map to change location"
+                pinColor="#e60023"
+              />
+            </MapView>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* State Modal */}
+      <Modal
+        visible={stateModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setStateModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setStateModalVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' }}>
+            <View
+              style={{
+                backgroundColor: '#fff',
+                marginHorizontal: wp('10%'),
+                borderRadius: wp('2%'),
+                maxHeight: hp('50%'),
+              }}
+            >
+              <FlatList
+                data={states}
+                keyExtractor={(item, index) => item.id || index.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={{
+                      paddingVertical: hp('1.5%'),
+                      paddingHorizontal: wp('4%'),
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#EAEAEA',
+                    }}
+                    onPress={() => handleStateSelect(item)}
+                  >
+                    <Text style={{ fontSize: wp('4.5%'), color: '#333333' }}>{item.name}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* City Modal */}
+      <Modal
+        visible={cityModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCityModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setCityModalVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' }}>
+            <View
+              style={{
+                backgroundColor: '#fff',
+                marginHorizontal: wp('10%'),
+                borderRadius: wp('2%'),
+                maxHeight: hp('50%'),
+              }}
+            >
+              <FlatList
+                data={cities}
+                keyExtractor={(item, index) => item.id || index.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={{
+                      paddingVertical: hp('1.5%'),
+                      paddingHorizontal: wp('4%'),
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#EAEAEA',
+                    }}
+                    onPress={() => handleCitySelect(item)}
+                  >
+                    <Text style={{ fontSize: wp('4.5%'), color: '#333333' }}>{item.name}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Area Modal */}
+      <Modal
+        visible={areaModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setAreaModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setAreaModalVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' }}>
+            <View
+              style={{
+                backgroundColor: '#fff',
+                marginHorizontal: wp('10%'),
+                borderRadius: wp('2%'),
+                maxHeight: hp('50%'),
+              }}
+            >
+              <FlatList
+                data={areas}
+                keyExtractor={(item, index) => item.id || index.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={{
+                      paddingVertical: hp('1.5%'),
+                      paddingHorizontal: wp('4%'),
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#EAEAEA',
+                    }}
+                    onPress={() => handleAreaSelect(item)}
+                  >
+                    <Text style={{ fontSize: wp('4.5%'), color: '#333333' }}>{item.name}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -610,6 +1018,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-Regular',
     backgroundColor: '#fff',
   },
+  readOnlyInput: {
+    backgroundColor: '#f5f5f5',
+    borderColor: '#e0e0e0',
+    color: '#666',
+  },
   textArea: {
     height: hp('8%'),
     textAlignVertical: 'top',
@@ -635,9 +1048,25 @@ const styles = StyleSheet.create({
     height: hp('20%'),
     backgroundColor: '#f0f0f0',
     borderRadius: wp('2%'),
+    marginVertical: hp('2%'),
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  mapLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: hp('2%'),
+    zIndex: 1,
+  },
+  mapLoadingText: {
+    fontSize: wp('4%'),
+    color: '#666',
+    fontFamily: 'Montserrat-Medium',
   },
   mapText: {
     fontSize: wp('4%'),
@@ -659,6 +1088,149 @@ const styles = StyleSheet.create({
     fontSize: wp('4%'),
     fontFamily: 'Montserrat-Medium',
     fontWeight: '500',
+  },
+  // Map styles
+  map: {
+    flex: 1,
+    width: '100%',
+  },
+  mapButton: {
+    backgroundColor: '#e60023',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  mapButtonText: {
+    color: '#fff',
+    fontSize: wp('3.5%'),
+    fontFamily: 'Montserrat-Medium',
+    fontWeight: '500',
+  },
+  // Bottom button styles
+  bottomButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('4%'),
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: hp('1.5%'),
+    borderRadius: wp('2%'),
+    alignItems: 'center',
+    alignSelf: 'center',
+    width: '100%',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: wp('4%'),
+    fontFamily: 'Montserrat-Bold',
+    fontWeight: 'bold',
+  },
+  editButton: {
+    backgroundColor: '#e60023',
+    paddingVertical: hp('1.5%'),
+    borderRadius: wp('2%'),
+    alignItems: 'center',
+    alignSelf: 'center',
+    width: '100%',
+  },
+  editButtonText: {
+    color: '#fff',
+    fontSize: wp('4%'),
+    fontFamily: 'Montserrat-Bold',
+    fontWeight: 'bold',
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('2%'),
+    backgroundColor: '#e60023',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  closeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: wp('5%'),
+    fontFamily: 'Montserrat-Bold',
+    fontWeight: 'bold',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: wp('4.5%'),
+    fontFamily: 'Montserrat-Bold',
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+  },
+  confirmButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#4CAF50',
+    borderRadius: 20,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: wp('5%'),
+    fontFamily: 'Montserrat-Bold',
+    fontWeight: 'bold',
+  },
+  mapWrapper: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+    position: 'relative',
+  },
+  fullMapLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  fullMapLoadingText: {
+    fontSize: wp('4.5%'),
+    color: '#666',
+    fontFamily: 'Montserrat-Medium',
+  },
+  fullMap: {
+    flex: 1,
+    width: '100%',
   },
 });
 

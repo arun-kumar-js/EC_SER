@@ -2,146 +2,95 @@ import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
   StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  StatusBar,
   Image,
-  ScrollView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 
-const PaymentFailure = ({ navigation, route }) => {
-  const { errorMessage, orderId, amount } = route.params || {};
-
-  const handleRetryPayment = () => {
-    // Navigate back to payment screen
-    navigation.goBack();
-  };
-
-  const handleGoHome = () => {
-    // Navigate to home screen
-    navigation.navigate('MainApp');
-  };
-
-  const handleContactSupport = () => {
-    // Navigate to support screen or show contact options
-    navigation.navigate('Support');
-  };
+const PaymentFailure = () => {
+  const navigation = useNavigation();
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#F70D24" />
+      <StatusBar barStyle="light-content" backgroundColor="#EF3340" />
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Icon name="arrow-back" size={wp('6%')} color="white" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Image 
+            source={require('../Assets/Images/Arrow.png')} 
+            style={styles.backIcon}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment Failed</Text>
-        <View style={{ width: wp('9%') }} />
+        <View style={styles.headerSpacer} />
       </View>
 
-      {/* Content */}
-      <ScrollView 
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={true}
-        bounces={true}
-      >
-        {/* Failure Icon */}
+      <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Icon name="error-outline" size={wp('20%')} color="#F70D24" />
+          <Icon name="close-circle" size={wp('20%')} color="#EF3340" />
         </View>
-
-        {/* Title */}
+        
         <Text style={styles.title}>Payment Failed</Text>
-
-        {/* Subtitle */}
         <Text style={styles.subtitle}>
-          We're sorry, but your payment could not be processed at this time.
+          Your payment could not be processed successfully. Please check your payment details and try again.
         </Text>
-
-        {/* Error Details */}
-        {errorMessage && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorTitle}>Error Details:</Text>
-            <Text style={styles.errorMessage}>{errorMessage}</Text>
+        
+        <View style={styles.reasonContainer}>
+          <Text style={styles.reasonTitle}>Possible reasons:</Text>
+          <View style={styles.reasonItem}>
+            <Icon name="checkmark-circle-outline" size={wp('4%')} color="#666" />
+            <Text style={styles.reasonText}>Insufficient funds in your account</Text>
           </View>
-        )}
-
-        {/* Order Information */}
-        {(orderId || amount) && (
-          <View style={styles.orderInfoContainer}>
-            <Text style={styles.orderInfoTitle}>Order Information:</Text>
-            {orderId && (
-              <Text style={styles.orderInfoText}>Order ID: {orderId}</Text>
-            )}
-            {amount && (
-              <Text style={styles.orderInfoText}>Amount: ₹{amount}</Text>
-            )}
+          <View style={styles.reasonItem}>
+            <Icon name="checkmark-circle-outline" size={wp('4%')} color="#666" />
+            <Text style={styles.reasonText}>Incorrect card details</Text>
           </View>
-        )}
-
-        {/* Possible Reasons */}
-        <View style={styles.reasonsContainer}>
-          <Text style={styles.reasonsTitle}>Possible reasons:</Text>
-          <View style={styles.reasonsList}>
-            <View style={styles.reasonItem}>
-              <Icon name="check" size={wp('4%')} color="#F70D24" />
-              <Text style={styles.reasonText}>Insufficient funds in your account</Text>
-            </View>
-            <View style={styles.reasonItem}>
-              <Icon name="check" size={wp('4%')} color="#F70D24" />
-              <Text style={styles.reasonText}>Network connectivity issues</Text>
-            </View>
-            <View style={styles.reasonItem}>
-              <Icon name="check" size={wp('4%')} color="#F70D24" />
-              <Text style={styles.reasonText}>Payment gateway temporarily unavailable</Text>
-            </View>
-            <View style={styles.reasonItem}>
-              <Icon name="check" size={wp('4%')} color="#F70D24" />
-              <Text style={styles.reasonText}>Invalid payment details</Text>
-            </View>
+          <View style={styles.reasonItem}>
+            <Icon name="checkmark-circle-outline" size={wp('4%')} color="#666" />
+            <Text style={styles.reasonText}>Network connectivity issues</Text>
+          </View>
+          <View style={styles.reasonItem}>
+            <Icon name="checkmark-circle-outline" size={wp('4%')} color="#666" />
+            <Text style={styles.reasonText}>Card expired or blocked</Text>
           </View>
         </View>
-
-        {/* Action Buttons */}
+        
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.retryButton}
-            onPress={handleRetryPayment}
-            activeOpacity={0.8}
+            onPress={() => navigation.goBack()}
           >
-            <Icon name="refresh" size={wp('5%')} color="white" />
-            <Text style={styles.retryButtonText}>Retry Payment</Text>
+            <Icon name="refresh" size={wp('4%')} color="#fff" style={styles.buttonIcon} />
+            <Text style={styles.retryButtonText}>Try Again</Text>
           </TouchableOpacity>
-
+          
           <TouchableOpacity
             style={styles.homeButton}
-            onPress={handleGoHome}
-            activeOpacity={0.8}
+            onPress={() => navigation.navigate('MainDrawer')}
           >
-            <Icon name="home" size={wp('5%')} color="#F70D24" />
+            <Icon name="home" size={wp('4%')} color="#EF3340" style={styles.buttonIcon} />
             <Text style={styles.homeButtonText}>Go to Home</Text>
           </TouchableOpacity>
-
+          
           <TouchableOpacity
-            style={styles.supportButton}
-            onPress={handleContactSupport}
-            activeOpacity={0.8}
+            style={styles.contactButton}
+            onPress={() => navigation.navigate('ContactUs')}
           >
-            <Icon name="support-agent" size={wp('5%')} color="#F70D24" />
-            <Text style={styles.supportButtonText}>Contact Support</Text>
+            <Icon name="call" size={wp('4%')} color="#666" style={styles.buttonIcon} />
+            <Text style={styles.contactButtonText}>Contact Support</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -149,202 +98,149 @@ const PaymentFailure = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    backgroundColor: '#F70D24',
+    backgroundColor: '#EF3340',
+    paddingVertical: hp('2%'),
+    paddingHorizontal: wp('4%'),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: wp('4%'),
-    paddingVertical: hp('1.5%'),
   },
   backButton: {
-    width: wp('9%'),
-    alignItems: 'center',
+    padding: wp('2%'),
+  },
+  backIcon: {
+    width: wp('6%'),
+    height: wp('6%'),
+    tintColor: '#fff',
   },
   headerTitle: {
-    color: 'white',
+    color: '#fff',
     fontSize: wp('4.5%'),
-    fontWeight: 'bold',
     fontFamily: 'Montserrat-Bold',
+    fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: wp('10%'),
   },
   content: {
     flex: 1,
-    paddingHorizontal: wp('6%'),
-    paddingVertical: hp('3%'),
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: wp('8%'),
   },
   iconContainer: {
-    marginTop: hp('5%'),
     marginBottom: hp('3%'),
-    alignItems: 'center',
   },
   title: {
     fontSize: wp('6%'),
     fontWeight: 'bold',
-    color: '#F70D24',
-    textAlign: 'center',
-    marginBottom: hp('2%'),
+    color: '#333',
     fontFamily: 'Montserrat-Bold',
+    marginBottom: hp('2%'),
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: wp('4%'),
     color: '#666',
+    fontFamily: 'Montserrat-Regular',
     textAlign: 'center',
-    lineHeight: wp('5.5%'),
-    marginBottom: hp('4%'),
-    fontFamily: 'Montserrat-Regular',
-  },
-  errorContainer: {
-    backgroundColor: '#ffebee',
-    padding: wp('4%'),
-    borderRadius: wp('2%'),
-    marginBottom: hp('3%'),
-    width: '100%',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F70D24',
-  },
-  errorTitle: {
-    fontSize: wp('4%'),
-    fontWeight: 'bold',
-    color: '#F70D24',
-    marginBottom: hp('1%'),
-    fontFamily: 'Montserrat-Bold',
-  },
-  errorMessage: {
-    fontSize: wp('3.5%'),
-    color: '#666',
     lineHeight: wp('5%'),
-    fontFamily: 'Montserrat-Regular',
+    marginBottom: hp('4%'),
   },
-  orderInfoContainer: {
+  reasonContainer: {
     backgroundColor: '#fff',
+    borderRadius: wp('3%'),
     padding: wp('4%'),
-    borderRadius: wp('2%'),
-    marginBottom: hp('3%'),
-    width: '100%',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-  },
-  orderInfoTitle: {
-    fontSize: wp('4%'),
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: hp('1%'),
-    fontFamily: 'Montserrat-Bold',
-  },
-  orderInfoText: {
-    fontSize: wp('3.5%'),
-    color: '#666',
-    marginBottom: hp('0.5%'),
-    fontFamily: 'Montserrat-Regular',
-  },
-  reasonsContainer: {
-    backgroundColor: '#fff',
-    padding: wp('4%'),
-    borderRadius: wp('2%'),
     marginBottom: hp('4%'),
     width: '100%',
-    elevation: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     shadowOffset: {
       width: 0,
       height: 2,
     },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  reasonsTitle: {
+  reasonTitle: {
     fontSize: wp('4%'),
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: hp('2%'),
     fontFamily: 'Montserrat-Bold',
-  },
-  reasonsList: {
-    gap: hp('1.5%'),
+    marginBottom: hp('2%'),
   },
   reasonItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp('3%'),
+    marginBottom: hp('1%'),
   },
   reasonText: {
     fontSize: wp('3.5%'),
     color: '#666',
-    flex: 1,
     fontFamily: 'Montserrat-Regular',
+    marginLeft: wp('3%'),
+    flex: 1,
   },
   buttonContainer: {
     width: '100%',
     gap: hp('2%'),
   },
   retryButton: {
-    backgroundColor: '#F70D24',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#EF3340',
     paddingVertical: hp('2%'),
-    paddingHorizontal: wp('4%'),
+    paddingHorizontal: wp('8%'),
     borderRadius: wp('2%'),
-    gap: wp('3%'),
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   retryButtonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: wp('4%'),
-    fontWeight: 'bold',
-    fontFamily: 'Montserrat-Bold',
+    fontWeight: '600',
+    fontFamily: 'Montserrat-SemiBold',
   },
   homeButton: {
-    backgroundColor: '#fff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: 'transparent',
     paddingVertical: hp('2%'),
-    paddingHorizontal: wp('4%'),
+    paddingHorizontal: wp('8%'),
     borderRadius: wp('2%'),
-    borderWidth: 2,
-    borderColor: '#F70D24',
-    gap: wp('3%'),
+    borderWidth: 1,
+    borderColor: '#EF3340',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   homeButtonText: {
-    color: '#F70D24',
+    color: '#EF3340',
     fontSize: wp('4%'),
-    fontWeight: 'bold',
-    fontFamily: 'Montserrat-Bold',
+    fontWeight: '600',
+    fontFamily: 'Montserrat-SemiBold',
   },
-  supportButton: {
-    backgroundColor: '#fff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  contactButton: {
+    backgroundColor: 'transparent',
     paddingVertical: hp('2%'),
-    paddingHorizontal: wp('4%'),
+    paddingHorizontal: wp('8%'),
     borderRadius: wp('2%'),
-    borderWidth: 2,
-    borderColor: '#F70D24',
-    gap: wp('3%'),
+    borderWidth: 1,
+    borderColor: '#666',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
-  supportButtonText: {
-    color: '#F70D24',
+  contactButtonText: {
+    color: '#666',
     fontSize: wp('4%'),
-    fontWeight: 'bold',
-    fontFamily: 'Montserrat-Bold',
+    fontWeight: '600',
+    fontFamily: 'Montserrat-SemiBold',
+  },
+  buttonIcon: {
+    marginRight: wp('2%'),
   },
 });
 

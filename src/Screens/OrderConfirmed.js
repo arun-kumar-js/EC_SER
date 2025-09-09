@@ -92,12 +92,12 @@ const OrderConfirmed = ({ route, navigation }) => {
   }, [paymentSuccess, paymentMethod, orderData]);
 
   const handleContinueShopping = () => {
-    navigation.navigate('MainApp');
+    navigation.navigate('MainDrawer');
   };
 
   const handleViewOrderDetails = () => {
-    // Navigate to order details screen
-    navigation.navigate('OrderDetails', { orderId, orderData });
+    // Navigate to my orders screen
+    navigation.navigate('MyOrders');
   };
 
   return (
@@ -157,8 +157,7 @@ const OrderConfirmed = ({ route, navigation }) => {
               <Text style={styles.cartIconText}>S</Text>
             </View>
             <View style={styles.brandText}>
-              <Text style={styles.spiderText}>SPIDER</Text>
-              <Text style={styles.ekartText}>EKART</Text>
+             <Image source={require('../Assets/Images/spider.png')} style={styles.logo} />
             </View>
             <View style={styles.confettiContainer}>
               <View style={styles.confetti1} />
@@ -298,6 +297,11 @@ const styles = StyleSheet.create({
   },
   brandText: {
     alignItems: 'flex-start',
+  },
+  logo: {
+    width: 80,
+    height: 30,
+    resizeMode: 'contain',
   },
   spiderText: {
     fontSize: 16,

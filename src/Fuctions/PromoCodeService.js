@@ -36,20 +36,31 @@ export const validatePromoCode = async (promoCode, total, userId) => {
     console.log('Error Field:', response.data.error);
     console.log('Message Field:', response.data.message);
 
+    // Check if response has error field
     if (response.data && response.data.error === false) {
       console.log('✅ Success: Promo code validated successfully');
       return {
         success: true,
-        message: response.data.message,
+        message: response.data.message || 'Promo code applied successfully',
         discount: response.data.discount || 0,
         finalTotal: response.data.final_total || total,
       };
-    } else {
+    } else if (response.data && response.data.error === true) {
       console.error('❌ Error: Promo code validation failed');
       console.error('Error Message:', response.data.message);
       return {
         success: false,
         message: response.data.message || 'Invalid promo code',
+        discount: 0,
+        finalTotal: total,
+      };
+    } else {
+      // Handle unexpected response format
+      console.error('❌ Error: Unexpected response format');
+      console.error('Response Data:', response.data);
+      return {
+        success: false,
+        message: 'Invalid response from server',
         discount: 0,
         finalTotal: total,
       };

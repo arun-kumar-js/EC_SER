@@ -62,13 +62,38 @@ export const addNewAddress = async addressData => {
     formData.append('user_id', addressData.user_id);
     formData.append('name', addressData.name);
     formData.append('mobile', addressData.mobile);
+    formData.append('email', addressData.email || '');
     formData.append('address', addressData.address);
+    formData.append('street', addressData.street || '');
     formData.append('landmark', addressData.landmark);
     formData.append('city_id', addressData.city_id);
     formData.append('state_id', addressData.state_id);
     formData.append('area_id', addressData.area_id);
     formData.append('pincode', addressData.pincode);
+    formData.append('latitude', addressData.latitude || '');
+    formData.append('longitude', addressData.longitude || '');
     formData.append('address_type', addressData.address_type);
+    formData.append('gst_no', addressData.gst_no || '');
+
+    // Log form data entries for debugging
+    console.log('=== ADD ADDRESS FORM DATA ENTRIES ===');
+    console.log('accesskey:', API_ACCESS_KEY);
+    console.log('type:', 'add_address');
+    console.log('user_id:', addressData.user_id);
+    console.log('name:', addressData.name);
+    console.log('mobile:', addressData.mobile);
+    console.log('email:', addressData.email || '');
+    console.log('address:', addressData.address);
+    console.log('street:', addressData.street || '');
+    console.log('landmark:', addressData.landmark);
+    console.log('city_id:', addressData.city_id);
+    console.log('state_id:', addressData.state_id);
+    console.log('area_id:', addressData.area_id);
+    console.log('pincode:', addressData.pincode);
+    console.log('latitude:', addressData.latitude || '');
+    console.log('longitude:', addressData.longitude || '');
+    console.log('address_type:', addressData.address_type);
+    console.log('gst_no:', addressData.gst_no || '');
 
     const response = await axios.post(GET_ALL_ADDRESSES, formData);
 
