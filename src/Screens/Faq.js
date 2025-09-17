@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,39 +7,99 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import axios from 'axios';
 
 const Faq = ({ navigation }) => {
-  const faqData = [
-    {
-      id: 1,
-      question: 'At what amount you will provide free delivery',
-      answer: 'ITS ABOUT THE LOCATION',
-    },
-    {
-      id: 2,
-      question: 'What are your delivery hours?',
-      answer: 'We deliver from 9:00 AM to 9:00 PM, 7 days a week.',
-    },
-    {
-      id: 3,
-      question: 'How can I track my order?',
-      answer: 'You can track your order in the "My Orders" section of the app.',
-    },
-    {
-      id: 4,
-      question: 'What payment methods do you accept?',
-      answer:
-        'We accept cash on delivery, credit/debit cards, and online payment.',
-    },
-    {
-      id: 5,
-      question: 'Can I cancel my order?',
-      answer:
-        'Yes, you can cancel your order before it is prepared for delivery.',
-    },
-  ];
+  const [faqData, setFaqData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFaqData();
+  }, []);
+
+  const parseFaqFromHTML = (htmlString) => {
+    try {
+      const faqData = [];
+      
+      // Extract FAQ items using regex patterns
+      const questionRegex = /<h3[^>]*>(\d+)\.\s*([^<]+)<\/h3>/g;
+      const answerRegex = /<p class="lead">([^<]*)<\/p>/g;
+      
+      let questionMatch;
+      let answerMatch;
+      let questionIndex = 0;
+      
+      // Extract all questions
+      const questions = [];
+      while ((questionMatch = questionRegex.exec(htmlString)) !== null) {
+        questions.push({
+          number: parseInt(questionMatch[1]),
+          text: questionMatch[2].trim()
+        });
+      }
+      
+      // Extract all answers
+      const answers = [];
+      while ((answerMatch = answerRegex.exec(htmlString)) !== null) {
+        answers.push(answerMatch[1].trim());
+      }
+      
+      // Combine questions and answers
+      for (let i = 0; i < questions.length; i++) {
+        faqData.push({
+          id: questions[i].number,
+          question: questions[i].text,
+          answer: answers[i] || 'No answer available'
+        });
+      }
+      
+      return faqData;
+    } catch (error) {
+      console.error('Error parsing FAQ HTML:', error);
+      return [];
+    }
+  };
+
+  const fetchFaqData = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching FAQ data...');
+      
+      const formData = new FormData();
+      formData.append('accesskey', '90336');
+      formData.append('get_faq', '1');
+
+      const response = await axios.post(
+        'https://spiderekart.in/india_demo_v3/pages_web/faq.php',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      console.log('FAQ API Response:', response.data);
+
+      if (response.data && typeof response.data === 'string') {
+        // Parse HTML response to extract FAQ data
+        const faqData = parseFaqFromHTML(response.data);
+        setFaqData(faqData);
+        console.log('FAQ data parsed from HTML:', faqData);
+      } else {
+        console.log('No FAQ data received from API');
+        setFaqData([]);
+      }
+    } catch (error) {
+      console.error('Error fetching FAQ data:', error);
+      setFaqData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderFaqItem = (item, index) => (
     <View key={item.id} style={styles.faqItem}>
@@ -50,6 +110,30 @@ const Faq = ({ navigation }) => {
       </View>
     </View>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Image 
+              source={require('../Assets/Images/Arrow.png')} 
+              style={styles.backArrow} 
+              resizeMode="contain" 
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>FAQ</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#e53e3e" />
+          <Text style={styles.loadingText}>Loading FAQs...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -78,7 +162,13 @@ const Faq = ({ navigation }) => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}># FAQs</Text>
 
-        {faqData.map((item, index) => renderFaqItem(item, index))}
+        {faqData.length > 0 ? (
+          faqData.map((item, index) => renderFaqItem(item, index))
+        ) : (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No FAQs available</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -176,6 +266,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+    fontFamily: 'Montserrat-Regular',
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noDataText: {
+    fontSize: 16,
+    color: '#666',
+    fontFamily: 'Montserrat-Regular',
   },
 });
 

@@ -32,23 +32,43 @@ const AboutScreen = () => {
       setLoading(true);
       console.log('Fetching about information...');
       
-      const response = await axios.post('https://ecservices.com.my/api/settings.php', {
-        settings: '1',
-        accesskey: '90336',
-        get_about_us: '1'
-      });
+    const formData = new FormData();
+    formData.append('settings', '1');
+    formData.append('accesskey', '90336');
+    formData.append('get_about_us', '1');
+
+    const response = await axios.post(
+      'https://spiderekart.in/ec_service/api-firebase/settings.php',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
 
       console.log('About API Response:', response.data);
 
-      if (response.data && response.data.data) {
-        setAboutData(response.data.data);
-        console.log('About data set:', response.data.data);
+      if (response.data && response.data.about) {
+        setAboutData(response.data);
+        console.log('About data set:', response.data);
+      } else if (response.data) {
+        // Use the response data even if structure is different
+        console.log('Using response data as fallback:', response.data);
+        setAboutData(response.data);
       } else {
         console.log('No about data received from API');
+        setAboutData(null);
       }
     } catch (error) {
       console.error('Error fetching about info:', error);
-      Alert.alert('Error', 'Failed to load about information');
+      // Try to use error response data if available
+      if (error.response && error.response.data) {
+        console.log('Using error response data:', error.response.data);
+        setAboutData(error.response.data);
+      } else {
+        setAboutData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -100,18 +120,13 @@ const AboutScreen = () => {
 
         {/* Content */}
         <View style={styles.contentContainer}>
-          <Text style={styles.companyName}>Spider Ekart</Text>
-          <Text style={styles.welcomeText}>Welcome to Spider Ekart!</Text>
-          
-          <Text style={styles.aboutText}>
-            {aboutData?.about ? parseAboutHTML(aboutData.about) : 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.'}
-          </Text>
-          
-          <Text style={styles.downloadTitle}>Download our Mobile App</Text>
-          
-          <Text style={styles.aboutText}>
-            Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged.
-          </Text>
+          {aboutData ? (
+            <Text style={styles.aboutText}>
+              {parseAboutHTML(aboutData.about || aboutData.data || JSON.stringify(aboutData))}
+            </Text>
+          ) : (
+            <Text style={styles.noDataText}>No about information available</Text>
+          )}
         </View>
         
         {/* Powered By Section */}
@@ -202,6 +217,13 @@ const styles = StyleSheet.create({
     marginBottom: hp('2%'),
     marginTop: hp('2%'),
     textAlign: 'left',
+  },
+  noDataText: {
+    fontSize: wp('4%'),
+    color: '#666',
+    fontFamily: 'Montserrat-Regular',
+    textAlign: 'center',
+    marginTop: hp('5%'),
   },
   poweredByContainer: {
     marginTop: hp('3%'),

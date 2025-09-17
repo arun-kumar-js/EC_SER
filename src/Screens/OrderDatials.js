@@ -368,7 +368,7 @@ const OrderDatials = ({ route, navigation }) => {
           {orderData.discount && orderData.discount !== '0' && (
             <View style={styles.row}>
               <Text style={styles.label}>Discount:</Text>
-              <Text style={styles.value}>- RM {orderData.discount_rupees || orderData.discount}</Text>
+              <Text style={styles.value}>- RM {orderData.discount_rm || orderData.discount}</Text>
             </View>
           )}
           {orderData.promo_discount && orderData.promo_discount !== '0' && (

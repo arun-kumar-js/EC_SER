@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,137 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
+import axios from 'axios';
 
 const TermsAndCondition = ({ navigation }) => {
+  const [termsData, setTermsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTermsData();
+  }, []);
+
+  const parseTermsContent = (htmlContent) => {
+    if (!htmlContent) return [];
+    
+    const contentBlocks = [];
+    
+    // Split by paragraph tags and process each
+    const paragraphs = htmlContent.split(/<\/p>\s*<p[^>]*>/);
+    
+    paragraphs.forEach((paragraph, index) => {
+      // Clean up the paragraph content
+      let text = paragraph
+        .replace(/<[^>]*>/g, '') // Remove HTML tags
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\r\n/g, '\n')
+        .replace(/\n\s*\n/g, '\n')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (!text) return;
+
+      // Skip the main title as we'll add it separately
+      if (text.includes('Terms and Conditions for EC Service App')) {
+        return;
+      }
+
+      // Check if this paragraph contains numbered sections
+      const numberedSections = text.split(/(\d+\.\s[^0-9]+?)(?=\d+\.\s|$)/);
+      
+      numberedSections.forEach((section) => {
+        const trimmedSection = section.trim();
+        if (!trimmedSection) return;
+
+        // Check if it's a numbered section heading
+        if (/^\d+\.\s/.test(trimmedSection)) {
+          const sectionNumber = trimmedSection.match(/^(\d+)\.\s/)[1];
+          const sectionTitle = trimmedSection.replace(/^\d+\.\s/, '');
+          
+          contentBlocks.push({ 
+            type: 'heading', 
+            level: 1, 
+            text: `${sectionNumber}. ${sectionTitle}`,
+            sectionNumber: parseInt(sectionNumber)
+          });
+        } else if (trimmedSection) {
+          // This is content for the previous section
+          contentBlocks.push({ type: 'paragraph', text: trimmedSection });
+        }
+      });
+    });
+
+    return contentBlocks;
+  };
+
+  const fetchTermsData = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching terms and conditions data...');
+      
+      const formData = new FormData();
+      formData.append('settings', '1');
+      formData.append('accesskey', '90336');
+      formData.append('get_terms', '1');
+
+      const response = await axios.post(
+        'https://spiderekart.in/ec_service/api-firebase/settings.php',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      console.log('Terms API Response:', response.data);
+
+      if (response.data && !response.data.error && response.data.terms) {
+        setTermsData(response.data);
+        console.log('Terms data set:', response.data);
+      } else {
+        console.log('No terms data received from API or error:', response.data);
+        setTermsData(null);
+      }
+    } catch (error) {
+      console.error('Error fetching terms data:', error);
+      setTermsData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Image 
+              source={require('../Assets/Images/Arrow.png')} 
+              style={styles.backArrow} 
+              resizeMode="contain" 
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Terms & Conditions</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#e53e3e" />
+          <Text style={styles.loadingText}>Loading terms and conditions...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -29,136 +157,37 @@ const TermsAndCondition = ({ navigation }) => {
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Terms and Conditions</Text>
-        <Text style={styles.lastUpdated}>
-          Last updated: {new Date().toLocaleDateString()}
-        </Text>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
-          <Text style={styles.sectionText}>
-            By accessing and using this mobile application, you accept and agree
-            to be bound by the terms and provision of this agreement. If you do
-            not agree to abide by the above, please do not use this service.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Use of Services</Text>
-          <Text style={styles.sectionText}>
-            Our services are intended for personal, non-commercial use. You
-            agree to use our services only for lawful purposes and in accordance
-            with these Terms.
-          </Text>
-          <Text style={styles.sectionText}>
-            You are responsible for maintaining the confidentiality of your
-            account and password and for restricting access to your device.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Orders and Payment</Text>
-          <Text style={styles.sectionText}>
-            All orders are subject to availability and confirmation. We reserve
-            the right to refuse any order placed through our application.
-          </Text>
-          <Text style={styles.sectionText}>
-            Payment must be made at the time of order placement or upon
-            delivery, depending on the payment method selected.
-          </Text>
-          <Text style={styles.sectionText}>
-            Prices are subject to change without notice. All prices include
-            applicable taxes unless otherwise stated.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>4. Delivery Policy</Text>
-          <Text style={styles.sectionText}>
-            We strive to deliver your orders within the estimated time frame.
-            However, delivery times may vary based on location, weather
-            conditions, and order volume.
-          </Text>
-          <Text style={styles.sectionText}>
-            Free delivery may be available for orders above a certain amount,
-            depending on your location.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>5. Cancellation and Refunds</Text>
-          <Text style={styles.sectionText}>
-            Orders can be cancelled before they are prepared for delivery. Once
-            an order is out for delivery, it cannot be cancelled.
-          </Text>
-          <Text style={styles.sectionText}>
-            Refunds will be processed according to our refund policy and may
-            take 3-7 business days to reflect in your account.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>6. Privacy Policy</Text>
-          <Text style={styles.sectionText}>
-            We respect your privacy and are committed to protecting your
-            personal data. Please review our Privacy Policy to understand how we
-            collect, use, and protect your information.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>7. User Conduct</Text>
-          <Text style={styles.sectionText}>
-            You agree not to use our services for any unlawful purpose or to
-            solicit others to perform unlawful acts.
-          </Text>
-          <Text style={styles.sectionText}>
-            You agree not to violate any local, state, national, or
-            international law in connection with your use of our services.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>8. Intellectual Property</Text>
-          <Text style={styles.sectionText}>
-            All content, features, and functionality of our application are
-            owned by us and are protected by international copyright, trademark,
-            and other intellectual property laws.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>9. Limitation of Liability</Text>
-          <Text style={styles.sectionText}>
-            We shall not be liable for any indirect, incidental, special,
-            consequential, or punitive damages resulting from your use of our
-            services.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>10. Changes to Terms</Text>
-          <Text style={styles.sectionText}>
-            We reserve the right to modify these terms at any time. Updated
-            terms will be posted in the application and will be effective
-            immediately upon posting.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>11. Contact Information</Text>
-          <Text style={styles.sectionText}>
-            If you have any questions about these Terms and Conditions, please
-            contact us through the support section in the application.
-          </Text>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            By using our application, you acknowledge that you have read and
-            understood these Terms and Conditions and agree to be bound by them.
-          </Text>
-        </View>
+        {termsData && termsData.terms ? (
+          <View>
+            <Text style={styles.title}>Terms & Conditions</Text>
+            <Text style={styles.lastUpdated}>
+              Last updated: {new Date().toLocaleDateString()}
+            </Text>
+            
+            <View style={styles.section}>
+              {parseTermsContent(termsData.terms).map((block, index) => {
+                if (block.type === 'heading') {
+                  return (
+                    <Text key={index} style={styles.sectionTitle}>
+                      {block.text}
+                    </Text>
+                  );
+                } else if (block.type === 'paragraph') {
+                  return (
+                    <Text key={index} style={styles.sectionText}>
+                      {block.text}
+                    </Text>
+                  );
+                }
+                return null;
+              })}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No terms and conditions available</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -167,7 +196,7 @@ const TermsAndCondition = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff',
   },
   header: {
     backgroundColor: '#e53e3e',
@@ -193,51 +222,59 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 20,
+    backgroundColor: '#ffffff',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#000000',
     fontFamily: 'Montserrat-Bold',
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 8,
+    marginTop: 0,
   },
   lastUpdated: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 30,
-    fontStyle: 'italic',
+    fontSize: 12,
+    color: '#999999',
+    textAlign: 'left',
+    marginBottom: 24,
+    fontStyle: 'normal',
+    fontFamily: 'Montserrat-Regular',
   },
   section: {
-    marginBottom: 24,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    shadowColor: '#000',
+    marginBottom: 0,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    shadowColor: 'transparent',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 0,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#e53e3e',
+    color: '#000000',
     fontFamily: 'Montserrat-Bold',
-    marginBottom: 12,
+    marginBottom: 8,
+    marginTop: 16,
+    lineHeight: 22,
+    textTransform: 'none',
   },
   sectionText: {
     fontSize: 14,
-    color: '#333',
+    color: '#000000',
     lineHeight: 20,
-    marginBottom: 8,
-    textAlign: 'justify',
+    marginBottom: 12,
+    textAlign: 'left',
+    fontFamily: 'Montserrat-Regular',
+    textAlignVertical: 'top',
   },
   footer: {
     backgroundColor: '#fff',
@@ -262,6 +299,28 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat-SemiBold',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+    fontFamily: 'Montserrat-Regular',
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noDataText: {
+    fontSize: 16,
+    color: '#666',
+    fontFamily: 'Montserrat-Regular',
   },
 });
 

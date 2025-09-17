@@ -25,11 +25,20 @@ const SupportScreen = () => {
   const fetchContactInfo = async () => {
     try {
       setLoading(true);
-      const response = await axios.post('https://ecservices.com.my/api/settings.php', {
-        settings: '1',
-        accesskey: '90336',
-        get_contact_us: '1'
-      });
+      const formData = new FormData();
+      formData.append('settings', '1');
+      formData.append('accesskey', '90336');
+      formData.append('get_contact_us', '1');
+
+      const response = await axios.post(
+        'https://ecservices.com.my/api/settings.php',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
 
       if (response.data && !response.data.error) {
         setContactData(response.data);

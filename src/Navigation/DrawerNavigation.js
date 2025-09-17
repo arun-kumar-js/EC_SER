@@ -1,6 +1,6 @@
 import React from 'react';
 import { createDrawerNavigator, useDrawerStatus } from '@react-navigation/drawer';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, SafeAreaView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, SafeAreaView, Alert, Linking } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -10,7 +10,9 @@ import {
 
 // Import your existing screens
 import BottomTap from './BottomTap';
+import ReferAndEarn from '../Screens/ReferAndEarn';
 import { getUserData } from '../Fuctions/UserDataService';
+import { deleteAccount } from '../Fuctions/DeleteAccountService';
 
 const Drawer = createDrawerNavigator();
 
@@ -105,19 +107,37 @@ const CustomDrawerContent = (props) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Clear all AsyncStorage data
-              await AsyncStorage.clear();
+              // Get user ID from stored user data
+              const userId = userData?.user_id || userData?.id;
               
-              // Refresh user data
-              setUserData(null);
+              if (!userId) {
+                Alert.alert('Error', 'User ID not found. Please try logging in again.');
+                return;
+              }
+
+              // Show loading alert
+              Alert.alert('Deleting Account', 'Please wait while we delete your account...');
+
+              // Call delete account API
+              const result = await deleteAccount(userId);
               
-              // Navigate to login screen
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-              });
-              
-              Alert.alert('Account Deleted', 'Your account has been deleted successfully');
+              if (result.success) {
+                // Clear all AsyncStorage data
+                await AsyncStorage.clear();
+                
+                // Refresh user data
+                setUserData(null);
+                
+                // Navigate to login screen
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' }],
+                });
+                
+                Alert.alert('Account Deleted', result.message || 'Your account has been deleted successfully');
+              } else {
+                Alert.alert('Error', result.message || 'Failed to delete account. Please try again.');
+              }
             } catch (error) {
               console.error('Error during account deletion:', error);
               Alert.alert('Error', 'Failed to delete account. Please try again.');
@@ -221,7 +241,15 @@ const CustomDrawerContent = (props) => {
                   style={styles.menuItem}
                   onPress={() => {
                     console.log('Navigating to screen:', item.screen);
-                    if (item.screen === 'Home') {
+                    if (item.name === 'Rate Us') {
+                      // Open App Store for EC Services app
+                      const appStoreUrl = 'https://apps.apple.com/in/app/ec-services/id6751712659';
+                      Linking.openURL(appStoreUrl).catch(err => {
+                        console.error('Error opening App Store:', err);
+                        Alert.alert('Error', 'Unable to open App Store');
+                      });
+                      navigation.closeDrawer();
+                    } else if (item.screen === 'Home') {
                       navigation.replace('MainDrawer');
                     } else {
                       navigation.navigate(item.screen);
@@ -294,6 +322,13 @@ const DrawerNavigation = () => {
       <Drawer.Screen
         name="MainApp"
         component={BottomTap}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Drawer.Screen
+        name="ReferEarn"
+        component={ReferAndEarn}
         options={{
           headerShown: false,
         }}

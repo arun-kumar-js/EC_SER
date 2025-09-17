@@ -49,8 +49,8 @@ const PaymentScreen = ({ route }) => {
   const [storeSettings, setStoreSettings] = useState({
     tax: 0,
     delivery_charge: 0,
-    currency: '₹',
-    currency_symbol: '₹',
+    currency: 'RM',
+    currency_symbol: 'RM',
     min_order_amount: 0,
     free_delivery_amount: 0,
     app_name: 'EC Services',
@@ -90,8 +90,8 @@ const PaymentScreen = ({ route }) => {
         setStoreSettings({
           tax: parseFloat(settings.tax) || 0,
           delivery_charge: parseFloat(settings.delivery_charge) || 0,
-          currency: settings.currency || '₹',
-          currency_symbol: settings.currency || '₹',
+          currency: settings.currency || 'RM',
+          currency_symbol: settings.currency || 'RM',
           min_order_amount: parseFloat(settings.min_amount) || 0,
           free_delivery_amount: parseFloat(settings.free_delivery_amount) || 0,
           app_name: settings.app_name || 'EC Services',
@@ -114,8 +114,8 @@ const PaymentScreen = ({ route }) => {
         setStoreSettings({
           tax: 8, // 8% tax as per your API response
           delivery_charge: 5, // 5 delivery charge as per your API response
-          currency: '₹',
-          currency_symbol: '₹',
+          currency: 'RM',
+          currency_symbol: 'RM',
           min_order_amount: 100,
           free_delivery_amount: 0,
           app_name: 'EC Services',
@@ -799,32 +799,73 @@ const PaymentScreen = ({ route }) => {
     
     if (!isToday) return false;
     
-    const currentTime = today.getHours() * 100 + today.getMinutes(); // Convert to HHMM format
-    
-    // Get time slot start time
+    // Get time slot start and end times
     const fromTime = timeSlot.from_time || timeSlot.start_time;
+    const toTime = timeSlot.to_time || timeSlot.end_time;
+    
     if (!fromTime) return false;
     
     // Parse time slot start time (format: "14:00:00" or "08:00:00")
-    const [hours, minutes] = fromTime.split(':').map(Number);
-    const timeSlotStart = hours * 100 + minutes;
+    const [startHours, startMinutes] = fromTime.split(':').map(Number);
+    const timeSlotStart = new Date();
+    timeSlotStart.setHours(startHours, startMinutes, 0, 0);
     
-    // Apply restrictions:
-    // 1. If current time is 2pm (14:00) or later, disable 8am slot (08:00)
-    // 2. If current time is 8am (08:00) or later, disable 8am slot (08:00)
-    // 3. If current time is past the time slot start time, disable that slot
-    
-    // Disable 8am slot if current time is 8am or later
-    if (timeSlotStart === 800 && currentTime >= 800) {
-      return true;
+    // Parse time slot end time if available
+    let timeSlotEnd = null;
+    if (toTime) {
+      const [endHours, endMinutes] = toTime.split(':').map(Number);
+      timeSlotEnd = new Date();
+      timeSlotEnd.setHours(endHours, endMinutes, 0, 0);
     }
     
-    // Disable any time slot if current time is past its start time
+    // Get current time
+    const currentTime = new Date();
+    
+    // For time range slots (like "Morning 8AM - 5PM"), disable if current time is past the start time
+    // This ensures users can't book a slot that has already started
     if (currentTime >= timeSlotStart) {
       return true;
     }
     
+    // If we have an end time, also check if current time is past the end time
+    if (timeSlotEnd && currentTime >= timeSlotEnd) {
+      return true;
+    }
+    
     return false;
+  };
+
+  // Get time slot status message
+  const getTimeSlotStatusMessage = (timeSlot) => {
+    if (!isTimeSlotDisabled(timeSlot)) return null;
+    
+    const fromTime = timeSlot.from_time || timeSlot.start_time;
+    const toTime = timeSlot.to_time || timeSlot.end_time;
+    
+    if (!fromTime) return "Time slot unavailable";
+    
+    const [startHours, startMinutes] = fromTime.split(':').map(Number);
+    const timeSlotStart = new Date();
+    timeSlotStart.setHours(startHours, startMinutes, 0, 0);
+    
+    let timeSlotEnd = null;
+    if (toTime) {
+      const [endHours, endMinutes] = toTime.split(':').map(Number);
+      timeSlotEnd = new Date();
+      timeSlotEnd.setHours(endHours, endMinutes, 0, 0);
+    }
+    
+    const currentTime = new Date();
+    
+    if (currentTime >= timeSlotStart) {
+      return "Time slot has started";
+    }
+    
+    if (timeSlotEnd && currentTime >= timeSlotEnd) {
+      return "Time slot has ended";
+    }
+    
+    return "Time slot unavailable";
   };
 
   // Effect to clear selected time slot if it becomes disabled
@@ -836,7 +877,7 @@ const PaymentScreen = ({ route }) => {
         Toast.show({
           type: 'info',
           text1: 'Time Slot Unavailable',
-          text2: 'The selected time slot is no longer available for today',
+          text2: 'The selected time slot has passed',
           visibilityTime: 3000,
         });
       }
@@ -1017,6 +1058,7 @@ const PaymentScreen = ({ route }) => {
           <Text style={styles.cardTitle}>Delivery Time Slot</Text>
           {timeSlots.map(timeSlot => {
             const isDisabled = isTimeSlotDisabled(timeSlot);
+            const statusMessage = getTimeSlotStatusMessage(timeSlot);
             return (
               <TouchableOpacity
                 key={timeSlot.id}
@@ -1035,13 +1077,19 @@ const PaymentScreen = ({ route }) => {
                     <View style={styles.radioDot} />
                   )}
                 </View>
-                <Text style={[
-                  styles.radioText,
-                  isDisabled && styles.disabledText
-                ]}>
-                  {timeSlot.title}
-                  {isDisabled && ' (Not Available)'}
-                </Text>
+                <View style={styles.timeSlotTextContainer}>
+                  <Text style={[
+                    styles.radioText,
+                    isDisabled && styles.disabledText
+                  ]}>
+                    {timeSlot.title}
+                  </Text>
+                  {isDisabled && statusMessage && (
+                    <Text style={styles.unavailableText}>
+                      ({statusMessage})
+                    </Text>
+                  )}
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -1447,6 +1495,15 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     color: '#999',
+  },
+  timeSlotTextContainer: {
+    flex: 1,
+  },
+  unavailableText: {
+    fontSize: 12,
+    color: '#ff4444',
+    fontFamily: 'Montserrat-Regular',
+    marginTop: 2,
   },
   notesLabel: {
     fontSize: 14,

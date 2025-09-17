@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1039271684439",
+    "project_id": "buy-eazy-a94d6",
+    "storage_bucket": "buy-eazy-a94d6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1039271684439:android:898e5935e7764919f33612",
+        "android_client_info": {
+          "package_name": "com.spiderindia.EcService"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8OoJAPiqSU_hfg6-c2jAUICIegxzCWP0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

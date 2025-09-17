@@ -19,8 +19,9 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
-import { API_ACCESS_KEY, API_BASE_URL } from './config/config';
-import { getProductQuantity, increaseProductQuantity, decreaseProductQuantity } from '../Fuctions/CartService';
+import { API_ACCESS_KEY, API_BASE_URL } from '../config/config';
+import { getProductQuantity, increaseProductQuantity, decreaseProductQuantity, fetchCartItems } from '../Fuctions/CartService';
+import axios from 'axios';
 
 const Search = () => {
   const navigation = useNavigation();
@@ -64,8 +65,16 @@ const Search = () => {
 
   const loadCartData = async () => {
     try {
-      const cartItems = await getProductQuantity();
-      setCartItems(cartItems);
+      const cartItems = await fetchCartItems();
+      // Convert array to object for easier lookup by product ID
+      const cartItemsObj = {};
+      cartItems.forEach(item => {
+        const productId = item.id || item.product_id;
+        if (productId) {
+          cartItemsObj[productId] = item.quantity || 0;
+        }
+      });
+      setCartItems(cartItemsObj);
     } catch (error) {
       console.error('Error loading cart data:', error);
     }
@@ -79,29 +88,51 @@ const Search = () => {
 
     setLoading(true);
     try {
+      console.log('=== SEARCH PRODUCTS ===');
+      console.log('Search query:', query.trim());
+      console.log('API URL:', `${API_BASE_URL}products-search.php`);
+      
       const formData = new FormData();
       formData.append('type', 'products-search');
       formData.append('accesskey', API_ACCESS_KEY);
       formData.append('search', query.trim());
 
-      const response = await fetch(`${API_BASE_URL}products-search.php`, {
-        method: 'POST',
-        body: formData,
+      console.log('Form data:', {
+        type: 'products-search',
+        accesskey: API_ACCESS_KEY,
+        search: query.trim()
+      });
+
+      const response = await axios.post(`${API_BASE_URL}products-search.php`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      const result = await response.json();
+      console.log('=== SEARCH API RESPONSE ===');
+      console.log('Response Status:', response.status);
+      console.log('Response Data:', response.data);
       
-      if (result.success && result.data) {
-        setSearchResults(result.data);
+      if (response.data && response.data.success && response.data.data) {
+        console.log('Search results found:', response.data.data.length);
+        setSearchResults(response.data.data);
+      } else if (response.data && response.data.data && response.data.data.length > 0) {
+        // Handle case where success field might be missing but data exists
+        console.log('Search results found (alternative structure):', response.data.data.length);
+        setSearchResults(response.data.data);
       } else {
+        console.log('No search results found');
         setSearchResults([]);
         Alert.alert('No Results', 'No products found for your search.');
       }
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('=== SEARCH ERROR ===');
+      console.error('Error type:', error.name);
+      console.error('Error message:', error.message);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
       Alert.alert('Error', 'Failed to search products. Please try again.');
       setSearchResults([]);
     } finally {

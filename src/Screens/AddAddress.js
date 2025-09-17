@@ -16,11 +16,13 @@ import {
   PermissionsAndroid,
   Platform,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Geolocation from '@react-native-community/geolocation';
 import { WebView } from 'react-native-webview';
-import MapView, { Marker, PROVIDER_APPLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
+import { getMapProvider, getMapProviderName } from '../utils/mapUtils';
 import axios from 'axios';
 // Icon import removed - using images from Assets/icon instead
 import {
@@ -59,6 +61,7 @@ const AddAddress = ({ route, navigation }) => {
   const [cities, setCities] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [userData, setUserData] = useState(null);
 
   const [selectedState, setSelectedState] = useState(null);
@@ -137,6 +140,24 @@ const AddAddress = ({ route, navigation }) => {
         console.error('Error fetching states:', err);
         setIsLoading(false);
       });
+  };
+
+  // Pull to refresh function
+  const onRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Re-check authentication
+      await checkUserAuthentication();
+      
+      // If authenticated, refresh states
+      if (isAuthenticated) {
+        fetchStates();
+      }
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   // Navigate to login screen
@@ -567,6 +588,16 @@ const renderModalItem = (item, onSelect) => (
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={['#F40612']} // Android
+            tintColor="#F40612" // iOS
+            title="Pull to refresh"
+            titleColor="#666666"
+          />
+        }
       >
         <View style={styles.formContainer}>
           {/* Name, Phone, Email Inputs */}
@@ -680,7 +711,7 @@ const renderModalItem = (item, onSelect) => (
 
           {formData.latitude && formData.longitude ? (
             <MapView
-              provider={PROVIDER_APPLE}
+              provider={getMapProvider()}
               style={styles.mapImage}
               region={{
                 latitude: parseFloat(formData.latitude),
@@ -820,7 +851,7 @@ const renderModalItem = (item, onSelect) => (
           
           <View style={styles.mapContainer}>
             <MapView
-              provider={PROVIDER_APPLE}
+              provider={getMapProvider()}
               style={styles.map}
               region={{
                 latitude: currentLocation.latitude,

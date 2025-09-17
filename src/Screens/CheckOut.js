@@ -34,8 +34,8 @@ const CheckOutScreen = ({ route }) => {
   const [storeSettings, setStoreSettings] = useState({
     tax: 0,
     delivery_charge: 0,
-    currency: '₹',
-    currency_symbol: '₹',
+    currency: 'RM',
+    currency_symbol: 'RM',
     min_order_amount: 0,
     free_delivery_amount: 0,
     app_name: 'EC Services',
@@ -154,8 +154,8 @@ const CheckOutScreen = ({ route }) => {
           const newSettings = {
             tax: parseFloat(settings.tax) || 0,
             delivery_charge: parseFloat(settings.delivery_charge) || 0,
-            currency: settings.currency || '₹',
-            currency_symbol: settings.currency || '₹',
+            currency: settings.currency || 'RM',
+            currency_symbol: settings.currency || 'RM',
             min_order_amount: parseFloat(settings.min_amount) || 0,
             free_delivery_amount: parseFloat(settings.free_delivery_amount) || 0,
             app_name: settings.app_name || 'EC Services',
@@ -179,8 +179,8 @@ const CheckOutScreen = ({ route }) => {
           setStoreSettings({
             tax: 8, // 8% tax as per your API response
             delivery_charge: 5, // 5 delivery charge as per your API response
-            currency: '₹',
-            currency_symbol: '₹',
+            currency: 'RM',
+            currency_symbol: 'RM',
             min_order_amount: 100,
             free_delivery_amount: 0,
             app_name: 'EC Services',

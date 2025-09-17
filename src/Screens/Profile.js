@@ -18,7 +18,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserData, getWalletBalance } from '../Fuctions/UserDataService';
 import { updateUserProfile } from '../Fuctions/UserProfileService';
 import Toast from 'react-native-toast-message';
-import MapView, { Marker, PROVIDER_APPLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
+import { getMapProvider, getMapProviderName } from '../utils/mapUtils';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
 import {
@@ -748,7 +749,7 @@ const ProfileScreen = ({ navigation }) => {
               )}
               <MapView
                 style={styles.map}
-                provider={PROVIDER_APPLE}
+                provider={getMapProvider()}
                 region={{
                   latitude: currentLocation.latitude,
                   longitude: currentLocation.longitude,
@@ -849,7 +850,7 @@ const ProfileScreen = ({ navigation }) => {
             )}
             <MapView
               style={styles.fullMap}
-              provider={PROVIDER_APPLE}
+              provider={getMapProvider()}
               region={{
                 latitude: currentLocation.latitude,
                 longitude: currentLocation.longitude,

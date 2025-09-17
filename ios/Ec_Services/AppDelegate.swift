@@ -2,9 +2,10 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import UserNotifications
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
   var window: UIWindow?
 
   var reactNativeDelegate: ReactNativeDelegate?
@@ -29,7 +30,55 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       launchOptions: launchOptions
     )
 
+    // Configure push notifications
+    configurePushNotifications(application)
+
     return true
+  }
+
+  // MARK: - Push Notifications Configuration
+  func configurePushNotifications(_ application: UIApplication) {
+    // Set notification center delegate
+    UNUserNotificationCenter.current().delegate = self
+    
+    // Request notification permissions
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+      if granted {
+        print("Notification permission granted")
+        DispatchQueue.main.async {
+          application.registerForRemoteNotifications()
+        }
+      } else {
+        print("Notification permission denied: \(error?.localizedDescription ?? "Unknown error")")
+      }
+    }
+  }
+
+  // MARK: - Remote Notification Registration
+  func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    print("Registered for remote notifications with token: \(deviceToken)")
+    // The device token will be handled by the React Native Pusher Beams library
+  }
+
+  func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    print("Failed to register for remote notifications: \(error.localizedDescription)")
+  }
+
+  // MARK: - UNUserNotificationCenterDelegate
+  func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    // Show notification even when app is in foreground
+    completionHandler([.alert, .badge, .sound])
+  }
+
+  func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+    // Handle notification tap
+    let userInfo = response.notification.request.content.userInfo
+    print("Notification tapped with userInfo: \(userInfo)")
+    
+    // You can add custom handling here for deep linking
+    // For example, navigate to specific screens based on notification data
+    
+    completionHandler()
   }
 }
 

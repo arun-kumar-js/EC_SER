@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,169 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import axios from 'axios';
 
 const PrivacyPolicy = ({ navigation }) => {
+  const [privacyData, setPrivacyData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPrivacyData();
+  }, []);
+
+  const parsePrivacyContent = (htmlContent) => {
+    if (!htmlContent) return [];
+    
+    const contentBlocks = [];
+    
+    // Use a more comprehensive regex to match all HTML tags
+    const regex = /<(h[2-3]|p)(?:[^>]*)>(.*?)<\/(h[2-3]|p)>/gs;
+    let match;
+
+    while ((match = regex.exec(htmlContent)) !== null) {
+      const tag = match[1];
+      let text = match[2];
+
+      // Clean up HTML entities and unwanted symbols
+      text = text
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/<br\s*\/?>/gi, '\n') // Convert <br> tags to line breaks
+        .replace(/\r\n/g, '\n')
+        .replace(/\n\s*\n/g, '\n')
+        .replace(/\s+/g, ' ')
+        .replace(/\[\?\]/g, '•') // Replace [?] with bullet points
+        .replace(/\?\s*/g, '• ') // Replace question marks with bullet points
+        .replace(/\[.*?\]/g, '•') // Replace any square bracket content with bullet points
+        .replace(/⸻/g, '') // Remove section dividers
+        .replace(/\s*\?\s*/g, '• ') // Replace any remaining question marks with bullet points
+        .replace(/\s*\[\s*\?\s*\]\s*/g, '• ') // Replace [?] patterns with bullet points
+        .trim();
+
+      if (!text) continue;
+
+      // Skip the main title as we'll add it separately
+      if (text.includes('Privacy Policy for EC Service') || text.includes('Effective Date')) {
+        continue;
+      }
+
+      if (tag.startsWith('h')) {
+        const level = parseInt(tag.substring(1));
+        
+        // Check if it's a numbered section heading (like "1. Information We Collect")
+        if (/^\d+\.\s/.test(text)) {
+          contentBlocks.push({ 
+            type: 'heading', 
+            level: level, 
+            text: text,
+            sectionNumber: parseInt(text.match(/^(\d+)\.\s/)?.[1] || '0')
+          });
+        } 
+        // Check if it's a subsection heading (like "1.1 Personal Information")
+        else if (/^\d+\.\d+\s/.test(text)) {
+          contentBlocks.push({ 
+            type: 'subheading', 
+            level: level, 
+            text: text 
+          });
+        }
+        // Check if it's descriptive text that should be treated as paragraph
+        else if (text.includes('We collect the following types') || 
+                 text.includes('We use the collected data') ||
+                 text.includes('We do not sell your personal') ||
+                 text.includes('We implement robust security') ||
+                 text.includes('You have the following rights') ||
+                 text.includes('The App may include integration') ||
+                 text.includes('We use cookies and similar') ||
+                 text.includes('We retain your data only') ||
+                 text.includes('The App is not intended') ||
+                 text.includes('We may update this Privacy') ||
+                 text.includes('If you have any questions')) {
+          contentBlocks.push({ type: 'paragraph', text: text });
+        }
+        // Default to heading for other h3 content
+        else {
+          contentBlocks.push({ 
+            type: 'heading', 
+            level: level, 
+            text: text 
+          });
+        }
+      } else if (tag === 'p' && text) {
+        contentBlocks.push({ type: 'paragraph', text: text });
+      }
+    }
+
+    return contentBlocks;
+  };
+
+  const fetchPrivacyData = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching privacy policy data...');
+      
+      const formData = new FormData();
+      formData.append('settings', '1');
+      formData.append('accesskey', '90336');
+      formData.append('get_privacy', '1');
+
+      const response = await axios.post(
+        'https://spiderekart.in/ec_service/api-firebase/settings.php',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      console.log('Privacy API Response:', response.data);
+
+      if (response.data && !response.data.error && response.data.privacy) {
+        setPrivacyData(response.data);
+        console.log('Privacy data set:', response.data);
+      } else {
+        console.log('No privacy data received from API or error:', response.data);
+        setPrivacyData(null);
+      }
+    } catch (error) {
+      console.error('Error fetching privacy data:', error);
+      setPrivacyData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Image 
+              source={require('../Assets/Images/Arrow.png')} 
+              style={styles.backArrow} 
+              resizeMode="contain" 
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Privacy Policy</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#e53e3e" />
+          <Text style={styles.loadingText}>Loading privacy policy...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -30,157 +189,73 @@ const PrivacyPolicy = ({ navigation }) => {
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.introText}>
-          This Privacy Policy describes how we collect, use, and protect your
-          personal information when you use our mobile application. We are
-          committed to ensuring that your privacy is protected and your personal
-          data is handled securely.
-        </Text>
-
-        <Text style={styles.introText}>
-          By using our application, you agree to the collection and use of
-          information in accordance with this policy. We will not use or share
-          your information with anyone except as described in this Privacy
-          Policy.
-        </Text>
-
-        <Text style={styles.sectionTitle}>WHO WE ARE</Text>
-        <Text style={styles.sectionText}>
-          We are a food delivery service that connects customers with local
-          restaurants and food vendors. Our platform enables users to browse
-          menus, place orders, and have food delivered to their preferred
-          location.
-        </Text>
-        <Text style={styles.sectionText}>
-          Our mission is to provide convenient, reliable, and efficient food
-          delivery services while maintaining the highest standards of data
-          privacy and security for our users.
-        </Text>
-
-        <Text style={styles.sectionTitle}>INFORMATION WE COLLECT</Text>
-        <Text style={styles.sectionText}>
-          <Text style={styles.boldText}>Personal Information:</Text> We collect
-          information you provide directly to us, such as your name, email
-          address, phone number, delivery address, and payment information when
-          you create an account or place an order.
-        </Text>
-        <Text style={styles.sectionText}>
-          <Text style={styles.boldText}>Usage Information:</Text> We
-          automatically collect information about how you use our app, including
-          your order history, preferences, and interactions with our services.
-        </Text>
-        <Text style={styles.sectionText}>
-          <Text style={styles.boldText}>Device Information:</Text> We may
-          collect information about your mobile device, including device type,
-          operating system, and unique device identifiers.
-        </Text>
-
-        <Text style={styles.sectionTitle}>HOW WE USE YOUR INFORMATION</Text>
-        <Text style={styles.sectionText}>
-          We use the information we collect to provide, maintain, and improve
-          our services, including processing your orders, facilitating
-          deliveries, and providing customer support.
-        </Text>
-        <Text style={styles.sectionText}>
-          We may also use your information to send you promotional materials,
-          updates about our services, and important notices about your account
-          or orders.
-        </Text>
-        <Text style={styles.sectionText}>
-          Your location information helps us connect you with nearby restaurants
-          and provide accurate delivery estimates and tracking.
-        </Text>
-
-        <Text style={styles.sectionTitle}>ROLES WE PLAY</Text>
-        <Text style={styles.sectionText}>
-          <Text style={styles.boldText}>Data Controller:</Text> We act as a data
-          controller when we determine the purposes and means of processing your
-          personal data for our services.
-        </Text>
-        <Text style={styles.sectionText}>
-          <Text style={styles.boldText}>Service Provider:</Text> We facilitate
-          connections between customers and restaurants, acting as an
-          intermediary to process orders and coordinate deliveries.
-        </Text>
-        <Text style={styles.sectionText}>
-          <Text style={styles.boldText}>Platform Operator:</Text> We operate and
-          maintain the technical infrastructure that enables our food delivery
-          marketplace to function.
-        </Text>
-
-        <Text style={styles.sectionTitle}>INFORMATION SHARING</Text>
-        <Text style={styles.sectionText}>
-          We share your order information with restaurants and delivery partners
-          to fulfill your orders. This includes your contact information and
-          delivery address.
-        </Text>
-        <Text style={styles.sectionText}>
-          We may share aggregated, non-personally identifiable information with
-          third parties for analytics and business purposes.
-        </Text>
-        <Text style={styles.sectionText}>
-          We do not sell, trade, or rent your personal information to third
-          parties for marketing purposes without your explicit consent.
-        </Text>
-
-        <Text style={styles.sectionTitle}>DATA SECURITY</Text>
-        <Text style={styles.sectionText}>
-          We implement appropriate technical and organizational measures to
-          protect your personal information against unauthorized access,
-          alteration, disclosure, or destruction.
-        </Text>
-        <Text style={styles.sectionText}>
-          Payment information is processed through secure, encrypted channels
-          and we do not store complete payment card details on our servers.
-        </Text>
-
-        <Text style={styles.sectionTitle}>YOUR RIGHTS</Text>
-        <Text style={styles.sectionText}>
-          You have the right to access, update, or delete your personal
-          information. You can do this through your account settings or by
-          contacting our support team.
-        </Text>
-        <Text style={styles.sectionText}>
-          You can opt out of promotional communications at any time by following
-          the unsubscribe instructions in our emails or adjusting your
-          notification preferences in the app.
-        </Text>
-
-        <Text style={styles.sectionTitle}>COOKIES AND TRACKING</Text>
-        <Text style={styles.sectionText}>
-          Our app may use cookies and similar tracking technologies to enhance
-          your experience and collect usage analytics.
-        </Text>
-        <Text style={styles.sectionText}>
-          You can control cookie preferences through your device settings,
-          though this may affect some functionality of our services.
-        </Text>
-
-        <Text style={styles.sectionTitle}>CHILDREN'S PRIVACY</Text>
-        <Text style={styles.sectionText}>
-          Our services are not intended for children under 13 years of age. We
-          do not knowingly collect personal information from children under 13.
-        </Text>
-
-        <Text style={styles.sectionTitle}>CHANGES TO THIS POLICY</Text>
-        <Text style={styles.sectionText}>
-          We may update this Privacy Policy from time to time. We will notify
-          you of any changes by posting the new Privacy Policy in the app and
-          updating the "Last Updated" date.
-        </Text>
-
-        <Text style={styles.sectionTitle}>CONTACT US</Text>
-        <Text style={styles.sectionText}>
-          If you have any questions about this Privacy Policy or our data
-          practices, please contact us through the support section in the
-          application.
-        </Text>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Last Updated: {new Date().toLocaleDateString()}
-          </Text>
-        </View>
+        {privacyData && privacyData.privacy ? (
+          <View>
+            <Text style={styles.title}>Privacy Policy</Text>
+            <Text style={styles.lastUpdated}>
+              Last updated: {new Date().toLocaleDateString()}
+            </Text>
+            
+            <View style={styles.section}>
+              {parsePrivacyContent(privacyData.privacy).map((block, index) => {
+                if (block.type === 'heading') {
+                  // Different styling for different heading levels
+                  const headingStyle = block.level === 2 ? styles.mainHeading : styles.sectionTitle;
+                  return (
+                    <Text key={index} style={headingStyle}>
+                      {block.text}
+                    </Text>
+                  );
+                } else if (block.type === 'subheading') {
+                  return (
+                    <Text key={index} style={styles.subheading}>
+                      {block.text}
+                    </Text>
+                  );
+                } else if (block.type === 'paragraph') {
+                  const lines = block.text.split('\n');
+                  return (
+                    <View key={index}>
+                      {lines.map((line, lineIndex) => {
+                        const trimmedLine = line.trim();
+                        if (!trimmedLine) return null;
+                        
+                        // Check if line starts with bullet point (including tab-indented ones)
+                        if (trimmedLine.startsWith('•') || trimmedLine.startsWith('\t•') || trimmedLine.match(/^\s*•/)) {
+                          return (
+                            <Text key={lineIndex} style={styles.bulletPoint}>
+                              {trimmedLine.replace(/^\s*/, '')} {/* Remove leading whitespace */}
+                            </Text>
+                          );
+                        }
+                        
+                        // Check if line contains bullet points anywhere (for mixed content)
+                        if (trimmedLine.includes('•')) {
+                          return (
+                            <Text key={lineIndex} style={styles.bulletPoint}>
+                              {trimmedLine}
+                            </Text>
+                          );
+                        }
+                        
+                        return (
+                          <Text key={lineIndex} style={styles.sectionText}>
+                            {trimmedLine}
+                          </Text>
+                        );
+                      })}
+                    </View>
+                  );
+                }
+                return null;
+              })}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.noDataContainer}>
+            <Text style={styles.noDataText}>No privacy policy available</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -189,7 +264,7 @@ const PrivacyPolicy = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#ffffff',
   },
   header: {
     backgroundColor: '#e53e3e',
@@ -217,47 +292,109 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 20,
+    backgroundColor: '#ffffff',
   },
-  introText: {
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000000',
+    fontFamily: 'Montserrat-Bold',
+    textAlign: 'left',
+    marginBottom: 8,
+    marginTop: 0,
+  },
+  lastUpdated: {
     fontSize: 14,
-    color: '#333',
-    lineHeight: 22,
+    color: '#666666',
+    textAlign: 'left',
     marginBottom: 20,
-    textAlign: 'justify',
+    fontStyle: 'normal',
+    fontFamily: 'Montserrat-Regular',
+  },
+  section: {
+    marginBottom: 0,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    shadowColor: 'transparent',
+    shadowOffset: {
+      width: 0,
+      height: 0,
+    },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
+  mainHeading: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+    fontFamily: 'Montserrat-Bold',
+    marginBottom: 12,
+    marginTop: 20,
+    lineHeight: 24,
+    textTransform: 'none',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000000',
     fontFamily: 'Montserrat-Bold',
-    color: '#333',
-    marginTop: 20,
     marginBottom: 12,
+    marginTop: 24,
+    lineHeight: 26,
+    textTransform: 'none',
+  },
+  subheading: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
+    fontFamily: 'Montserrat-Bold',
+    marginBottom: 8,
+    marginTop: 16,
+    lineHeight: 22,
+    textTransform: 'none',
   },
   sectionText: {
-    fontSize: 14,
-    color: '#333',
-    lineHeight: 22,
-    marginBottom: 12,
-    textAlign: 'justify',
+    fontSize: 16,
+    color: '#000000',
+    lineHeight: 24,
+    marginBottom: 16,
+    textAlign: 'left',
+    fontFamily: 'Montserrat-Regular',
+    textAlignVertical: 'top',
   },
-  boldText: {
-    fontWeight: 'bold',
-    color: '#e53e3e',
-    fontFamily: 'Montserrat-Bold',
+  bulletPoint: {
+    fontSize: 16,
+    color: '#000000',
+    lineHeight: 24,
+    marginBottom: 8,
+    textAlign: 'left',
+    fontFamily: 'Montserrat-Regular',
+    paddingLeft: 16,
+    marginLeft: 8,
   },
-  footer: {
-    backgroundColor: '#e53e3e',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 30,
-    marginBottom: 20,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  footerText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: 'Montserrat-SemiBold',
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+    fontFamily: 'Montserrat-Regular',
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  noDataText: {
+    fontSize: 16,
+    color: '#666',
+    fontFamily: 'Montserrat-Regular',
   },
 });
 

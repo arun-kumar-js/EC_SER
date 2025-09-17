@@ -29,25 +29,35 @@ const ContactUsScreen = () => {
   const fetchContactInfo = async () => {
     try {
       setLoading(true);
-      console.log('Fetching contact information...');
+      console.log('Fetching about information...');
       
-      const response = await axios.post('https://ecservices.com.my/api/settings.php', {
-        settings: '1',
-        accesskey: '90336',
-        get_contact_us: '1'
-      });
+    const formData = new FormData();
+    formData.append('settings', '1');
+    formData.append('accesskey', '90336');
+    formData.append('get_contact', '1');
+
+    const response = await axios.post(
+      'https://spiderekart.in/ec_service/api-firebase/settings.php',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
 
       console.log('Contact API Response:', response.data);
 
-      if (response.data && response.data.data) {
-        setContactData(response.data.data);
-        console.log('Contact data set:', response.data.data);
-      } else {
-        console.log('No contact data received from API');
-      }
+       if (response.data && response.data.contact) {
+         setContactData(response.data);
+         console.log('Contact data set:', response.data);
+       } else {
+         console.log('No contact data received from API');
+         setContactData(null);
+       }
     } catch (error) {
       console.error('Error fetching contact info:', error);
-      Alert.alert('Error', 'Failed to load contact information');
+      setContactData(null);
     } finally {
       setLoading(false);
     }
@@ -136,15 +146,17 @@ const ContactUsScreen = () => {
 
         {/* Content */}
         <View style={styles.contentContainer}>
-          <Text style={styles.companyName}>Spider India</Text>
-          
-          <Text style={styles.feedbackText}>Please send all your feedback to</Text>
-          
-          <TouchableOpacity onPress={() => handleEmail('spiderindia@gmail.com')}>
-            <Text style={styles.emailText}>spiderindia@gmail.com</Text>
-          </TouchableOpacity>
-          
-          <Text style={styles.contactText}>Contact number : 9150489997</Text>
+          {contactData && contactData.contact ? (
+            <View>
+              <Text style={styles.aboutText}>
+                {contactData.contact.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim()}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>No contact information available</Text>
+            </View>
+          )}
         </View>
         
         {/* Powered By Section */}
@@ -201,36 +213,88 @@ const styles = StyleSheet.create({
     width: wp('10%'),
   },
   contentContainer: {
-    padding: wp('4%'),
+    margin: wp('4%'),
+    padding: wp('5%'),
     backgroundColor: '#fff',
+    borderRadius: wp('2%'),
+    borderTopWidth: 3,
+    borderTopColor: '#E53935',
+    borderLeftWidth: 2,
+    borderLeftColor: '#2196F3',
+    borderRightWidth: 2,
+    borderRightColor: '#2196F3',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   companyName: {
-    fontSize: wp('6%'),
+    fontSize: wp('7%'),
     fontFamily: 'Montserrat-Bold',
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: hp('3%'),
+    color: '#000',
+    marginBottom: hp('2%'),
     textAlign: 'left',
   },
   feedbackText: {
     fontSize: wp('4%'),
-    color: '#333',
+    color: '#000',
     fontFamily: 'Montserrat-Regular',
     marginBottom: hp('1%'),
     textAlign: 'left',
   },
   emailText: {
     fontSize: wp('4%'),
-    color: '#333',
+    color: '#000',
     fontFamily: 'Montserrat-Regular',
-    marginBottom: hp('3%'),
+    marginBottom: hp('2%'),
     textAlign: 'left',
   },
   contactText: {
     fontSize: wp('4%'),
+    color: '#000',
+    fontFamily: 'Montserrat-Regular',
+    textAlign: 'left',
+  },
+  aboutText: {
+    fontSize: wp('4%'),
+    color: '#333',
+    fontFamily: 'Montserrat-Regular',
+    marginBottom: hp('2%'),
+    textAlign: 'left',
+    lineHeight: wp('5%'),
+  },
+  contactSection: {
+    marginBottom: hp('2%'),
+  },
+  sectionTitle: {
+    fontSize: wp('4.5%'),
+    color: '#E53935',
+    fontFamily: 'Montserrat-Bold',
+    fontWeight: 'bold',
+    marginBottom: hp('1%'),
+    textAlign: 'left',
+  },
+  phoneText: {
+    fontSize: wp('4%'),
     color: '#333',
     fontFamily: 'Montserrat-Regular',
     textAlign: 'left',
+    textDecorationLine: 'underline',
+  },
+  noDataContainer: {
+    padding: wp('4%'),
+    alignItems: 'center',
+  },
+  noDataText: {
+    fontSize: wp('4%'),
+    color: '#666',
+    fontFamily: 'Montserrat-Regular',
+    textAlign: 'center',
   },
   poweredByContainer: {
     marginTop: hp('3%'),
