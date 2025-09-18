@@ -22,6 +22,8 @@ const OrderDatials = ({ route, navigation }) => {
   console.log("delivery_method:", orderData?.delivery_method);
   console.log("payment_method:", orderData?.payment_method);
   console.log("customer_details:", orderData?.customer_details);
+  console.log("date_added:", orderData?.date_added);
+  console.log("order_date:", orderData?.order_date);
   // Handle both direct orderData and orderId cases
   useEffect(() => {
     const hydrateFromService = async () => {
@@ -40,8 +42,11 @@ const OrderDatials = ({ route, navigation }) => {
             mobile: paramsOrderData.mobile || paramsOrderData.customer_details?.mobile,
             address: paramsOrderData.address || paramsOrderData.customer_details?.address,
             email: paramsOrderData.email || paramsOrderData.customer_details?.email,
+            date_added: paramsOrderData.date_added,
+            order_date: paramsOrderData.date_added,
           };
           setOrderData(processedOrderData);
+          console.log('Processed order data with date:', processedOrderData.date_added);
           setLoading(false);
           return;
         }
@@ -77,6 +82,8 @@ const OrderDatials = ({ route, navigation }) => {
                 total: order.total || order.final_total,
                 grand_total: order.final_total || order.total,
                 delivery_time: order.delivery_time,
+                from_date: order.from_date,
+                to_date: order.to_date,
                 delivery_method: order.delivery_method,
                 payment_method: order.payment_method,
                 customer_details: {
@@ -275,6 +282,12 @@ const OrderDatials = ({ route, navigation }) => {
               <Text style={styles.value}>{orderData.date_added}</Text>
             </View>
           )}
+          {orderData.order_date && !orderData.date_added && (
+            <View style={styles.row}>
+              <Text style={styles.label}>Order Date:</Text>
+              <Text style={styles.value}>{orderData.order_date}</Text>
+            </View>
+          )}
           {orderData.active_status && (
             <View style={styles.row}>
               <Text style={styles.label}>Order Status:</Text>
@@ -411,6 +424,16 @@ const OrderDatials = ({ route, navigation }) => {
                 <Text style={styles.detailValue}>{orderData.email}</Text>
               </View>
             )}
+            {orderData.delivery_time && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Delivery Date:</Text>
+                <Text style={styles.detailValue}>{orderData.from_date}</Text>
+              </View>
+            )}
+
+
+
+
             {orderData.delivery_time && (
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Delivery Time:</Text>

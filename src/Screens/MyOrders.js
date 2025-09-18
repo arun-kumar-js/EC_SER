@@ -412,46 +412,9 @@ const MyOrders = ({ navigation }) => {
             </Text>
             <Text style={styles.emptySubtitle}>
               {selectedFilter === 'All'
-                ? 'Start shopping to see your orders here'
+                ? 'You are not logged in, please login'
                 : `You don't have any ${selectedFilter.toLowerCase()} orders`}
             </Text>
-            {selectedFilter === 'All' && (
-              <TouchableOpacity
-                style={styles.shopButton}
-                onPress={() => navigation.navigate('Home')}
-              >
-                <Text style={styles.shopButtonText}>Start Shopping</Text>
-              </TouchableOpacity>
-            )}
-            
-            {/* Debug Button - Remove in production */}
-            <TouchableOpacity
-              style={[styles.shopButton, {backgroundColor: '#007AFF', marginTop: 10}]}
-              onPress={async () => {
-                console.log('=== MANUAL DEBUG TEST ===');
-                const storedUser = await AsyncStorage.getItem('userData');
-                console.log('Stored user:', storedUser);
-                
-                if (storedUser) {
-                  const userObj = JSON.parse(storedUser);
-                  const userId = userObj.user_id || userObj.id;
-                  console.log('User ID:', userId);
-                  
-                  if (userId) {
-                    console.log('Testing API call...');
-                    const result = await getUserOrders(userId);
-                    console.log('API Result:', result);
-                    Alert.alert('Debug Info', `API Success: ${result.success}\nOrders Count: ${result.orders?.length || 0}\nMessage: ${result.message || 'N/A'}`);
-                  } else {
-                    Alert.alert('Debug Info', 'No user ID found');
-                  }
-                } else {
-                  Alert.alert('Debug Info', 'No user data found in AsyncStorage');
-                }
-              }}
-            >
-              <Text style={styles.shopButtonText}>Debug API</Text>
-            </TouchableOpacity>
           </View>
         )}
       </ScrollView>

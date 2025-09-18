@@ -57,7 +57,7 @@ const More = () => {
     {
       icon: require('../../Assets/icon/star.png'),
       label: 'Rate Us',
-      onPress: () => navigation.navigate('Rating'),
+      onPress: () => handleRateUs(),
     },
     {
       icon: require('../../Assets/icon/share.png'),
@@ -67,12 +67,7 @@ const More = () => {
     {
       icon: require('../../Assets/icon/refer.png'),
       label: 'Refer & Earn',
-      onPress: () => {
-        Alert.alert(
-          'Refer & Earn',
-          'Refer friends and earn rewards! Feature coming soon.',
-        );
-      },
+      onPress: () => navigation.navigate('ReferEarn'),
     },
     {
       icon: require('../../Assets/icon/FAQ.png'),
@@ -161,6 +156,22 @@ const More = () => {
     }
   };
 
+  const handleRateUs = async () => {
+    try {
+      const appStoreUrl = 'https://apps.apple.com/in/app/ec-services/id6751712659';
+      const supported = await Linking.canOpenURL(appStoreUrl);
+      
+      if (supported) {
+        await Linking.openURL(appStoreUrl);
+      } else {
+        Alert.alert('Error', 'Unable to open App Store. Please rate us manually.');
+      }
+    } catch (error) {
+      console.error('Error opening App Store:', error);
+      Alert.alert('Error', 'Unable to open App Store at the moment.');
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       {
@@ -218,35 +229,59 @@ const More = () => {
           }
         >
           <View style={styles.header}>
-            <View style={styles.profileContainer}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {getInitials(user?.name || 'User')}
-                </Text>
+            {user ? (
+              <>
+                <View style={styles.profileContainer}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>
+                      {getInitials(user?.name || 'User')}
+                    </Text>
+                  </View>
+                  <View style={styles.profileInfo}>
+                    <Text style={styles.profileName}>
+                      {user?.name || 'User'}
+                    </Text>
+                    <Text style={styles.profilePhone}>
+                      {user?.mobile || user?.phone || 'N/A'}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.editProfileButton}
+                  onPress={() => navigation.navigate('Profile')}
+                >
+                  <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.loginContainer}>
+                <View style={styles.profileContainer}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>L</Text>
+                  </View>
+                  <View style={styles.profileInfo}>
+                    <Text style={styles.profileName}>Welcome Guest</Text>
+                    <Text style={styles.profilePhone}>Please login to continue</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={() => navigation.navigate('Login')}
+                >
+                  <Text style={styles.loginButtonText}>Login</Text>
+                </TouchableOpacity>
               </View>
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>
-                  {user?.name || 'Loading...'}
-                </Text>
-                <Text style={styles.profilePhone}>
-                  {user?.mobile || user?.phone || 'N/A'}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.editProfileButton}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-            </TouchableOpacity>
+            )}
           </View>
 
-          <View style={styles.walletBalanceContainer}>
-            <Text style={styles.walletBalanceText}>Wallet Balance</Text>
-            <Text style={styles.walletBalanceAmount}>
-              {loading ? 'Loading...' : `RM ${walletBalance.toFixed(2)}`}
-            </Text>
-          </View>
+          {user && (
+            <View style={styles.walletBalanceContainer}>
+              <Text style={styles.walletBalanceText}>Wallet Balance</Text>
+              <Text style={styles.walletBalanceAmount}>
+                {loading ? 'Loading...' : `RM ${walletBalance.toFixed(2)}`}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.listContainer}>
             {menuItems.map((item, index) => (
@@ -326,6 +361,24 @@ const styles = StyleSheet.create({
   },
   editProfileButtonText: {
     color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    fontFamily: 'Montserrat-Medium',
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  loginButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+  },
+  loginButtonText: {
+    color: '#EE2737',
     fontSize: 14,
     fontWeight: '500',
     fontFamily: 'Montserrat-Medium',

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createStackNavigator } from '@react-navigation/stack';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Toast from 'react-native-toast-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -130,65 +130,89 @@ const ChooseAddressScreen = ({ navigation }) => {
   // Pull to refresh function
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
+    try {
+      await fetchData();
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        console.log('=== ADDRESS PAGE LOADED ===');
+  // Function to fetch data
+  const fetchData = async () => {
+    try {
+      console.log('=== ADDRESS PAGE LOADED ===');
 
-        // Fetch states first for name mapping
-        await fetchStatesAndCities();
+      // Fetch states first for name mapping
+      await fetchStatesAndCities();
 
-        const storedUser = await AsyncStorage.getItem('userData');
-        console.log('Raw stored user data:', storedUser);
+      const storedUser = await AsyncStorage.getItem('userData');
+      console.log('Raw stored user data:', storedUser);
 
-        if (storedUser) {
-          const userObj = JSON.parse(storedUser);
-          setUser(userObj);
-          console.log('Parsed user object:', userObj);
-          console.log('User ID:', userObj.user_id || userObj.id);
+      if (storedUser) {
+        const userObj = JSON.parse(storedUser);
+        setUser(userObj);
+        console.log('Parsed user object:', userObj);
+        console.log('User ID:', userObj.user_id || userObj.id);
 
-          // Only fetch addresses if user is logged in and has valid ID
-          if (userObj.user_id || userObj.id) {
-            console.log('=== CALLING FETCH USER ADDRESSES ===');
-            console.log('User ID being passed:', userObj.user_id || userObj.id);
-            const addressesData = await fetchUserAddresses(
-              userObj.user_id || userObj.id,
-            );
-            
-            // Map addresses with proper state and city names
-            const mappedAddresses = await mapAddressWithNames(addressesData);
-            setAddresses(mappedAddresses);
-            
-            // Set first address as default selected
-            if (mappedAddresses.length > 0) {
-              setSelectedAddressId(mappedAddresses[0].id);
-            }
-            console.log('=== ADDRESSES SET IN STATE ===');
-            console.log('Mapped Addresses Data:', mappedAddresses);
-            console.log('Addresses Count:', mappedAddresses.length);
-          } else {
-            console.warn('No valid user ID found');
-            setAddresses([]);
+        // Only fetch addresses if user is logged in and has valid ID
+        if (userObj.user_id || userObj.id) {
+          console.log('=== CALLING FETCH USER ADDRESSES ===');
+          console.log('User ID being passed:', userObj.user_id || userObj.id);
+          const addressesData = await fetchUserAddresses(
+            userObj.user_id || userObj.id,
+          );
+          
+          // Map addresses with proper state and city names
+          const mappedAddresses = await mapAddressWithNames(addressesData);
+          setAddresses(mappedAddresses);
+          
+          // Set first address as default selected
+          if (mappedAddresses.length > 0) {
+            setSelectedAddressId(mappedAddresses[0].id);
           }
+          console.log('=== ADDRESSES SET IN STATE ===');
+          console.log('Mapped Addresses Data:', mappedAddresses);
+          console.log('Addresses Count:', mappedAddresses.length);
         } else {
-          console.warn('No user data found in AsyncStorage - User not logged in');
-          setUser(null);
+          console.warn('No valid user ID found');
           setAddresses([]);
         }
-      } catch (error) {
-        console.error('Error fetching addresses:', error);
-        Alert.alert('Error', 'Failed to fetch addresses');
+      } else {
+        console.warn('No user data found in AsyncStorage - User not logged in');
+        setUser(null);
         setAddresses([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      Alert.alert('Error', 'Failed to fetch addresses');
+      setAddresses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
     fetchData();
   }, []);
+
+  // Auto-refresh when screen comes into focus (when returning from AddAddress)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('=== ADDRESS PAGE FOCUSED - REFRESHING DATA ===');
+      // Only refresh if user is authenticated and not in initial loading state
+      if (user && (user.user_id || user.id) && !loading) {
+        // Add a small delay to prevent unnecessary refreshes during navigation
+        const timeoutId = setTimeout(() => {
+          fetchData();
+        }, 100);
+        
+        return () => clearTimeout(timeoutId);
+      }
+    }, [user, loading])
+  );
 
   const renderItem = ({ item }) => {
     const isSelected = selectedAddressId === item.id;

@@ -946,13 +946,13 @@ const PaymentScreen = ({ route }) => {
   }, [selectedDate, selectedDeliveryTime, timeSlots]);
 
   const handleDateSelect = date => {
-    // Check if the selected date is at least 3 days from today
+    // Check if the selected date is at least 2 days from today
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
     
-    // Calculate minimum allowed date (today + 3 days)
+    // Calculate minimum allowed date (today + 2 days)
     const minAllowedDate = new Date(today);
-    minAllowedDate.setDate(today.getDate() + 3);
+    minAllowedDate.setDate(today.getDate() + 2);
     
     const selectedDateOnly = new Date(date);
     selectedDateOnly.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
@@ -966,7 +966,7 @@ const PaymentScreen = ({ route }) => {
       Toast.show({
         type: 'error',
         text1: 'Invalid Date',
-        text2: `Delivery must be scheduled at least 3 days in advance. Earliest date: ${minDateFormatted}`,
+        text2: `Delivery must be scheduled at least 2 days in advance. Earliest date: ${minDateFormatted}`,
         visibilityTime: 4000,
       });
       return;
@@ -988,9 +988,9 @@ const PaymentScreen = ({ route }) => {
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
 
-    // Calculate minimum allowed date (today + 3 days)
+    // Calculate minimum allowed date (today + 2 days)
     const minAllowedDate = new Date(today);
-    minAllowedDate.setDate(today.getDate() + 3);
+    minAllowedDate.setDate(today.getDate() + 2);
 
     const days = [];
 
