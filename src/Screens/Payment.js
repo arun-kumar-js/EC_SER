@@ -33,8 +33,69 @@ const PaymentScreen = ({ route }) => {
   const [timeSlots, setTimeSlots] = useState([]);
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState(null);
+  
+  // Get minimum allowed date (today + 3 days)
+  const getMinAllowedDate = () => {
+    const today = new Date();
+    const minDate = new Date(today);
+    minDate.setDate(today.getDate() + 3);
+    
+    console.log('=== DATE CALCULATION ===');
+    console.log('Today (full):', today);
+    console.log('Today (string):', today.toDateString());
+    console.log('Today date number:', today.getDate());
+    console.log('Today month:', today.getMonth() + 1);
+    console.log('Today year:', today.getFullYear());
+    console.log('Min date (full):', minDate);
+    console.log('Min date (string):', minDate.toDateString());
+    console.log('Min date number:', minDate.getDate());
+    console.log('Min date month:', minDate.getMonth() + 1);
+    console.log('Min date year:', minDate.getFullYear());
+    
+    return minDate;
+  };
+  
+  // Format date for display
+  const formatDateForDisplay = (date) => {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
   const [walletBalance, setWalletBalance] = useState(0);
+  
+  // Auto-set minimum allowed date when component loads
+  useEffect(() => {
+    const setMinDate = () => {
+      const minDate = getMinAllowedDate();
+      const formattedMinDate = formatDateForDisplay(minDate);
+      setSelectedDate(formattedMinDate);
+      console.log('=== AUTO-SET MINIMUM DATE ===');
+      console.log('Minimum allowed date set:', formattedMinDate);
+      console.log('Previous selected date was:', selectedDate);
+    };
+    
+    // Set immediately
+    setMinDate();
+    
+    // Also set after a small delay to ensure state is properly updated
+    const timer = setTimeout(setMinDate, 100);
+    
+    return () => clearTimeout(timer);
+  }, []); // Remove selectedDate from dependency array to avoid infinite loop
+
+  // Refresh date when component comes into focus to ensure it's always current
+  useFocusEffect(
+    React.useCallback(() => {
+      const minDate = getMinAllowedDate();
+      const formattedMinDate = formatDateForDisplay(minDate);
+      setSelectedDate(formattedMinDate);
+      console.log('=== REFRESH DATE ON FOCUS ===');
+      console.log('Updated selected date:', formattedMinDate);
+    }, [])
+  );
   const [user, setUser] = useState(null);
   const [remainingAmount, setRemainingAmount] = useState(0);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
@@ -885,18 +946,28 @@ const PaymentScreen = ({ route }) => {
   }, [selectedDate, selectedDeliveryTime, timeSlots]);
 
   const handleDateSelect = date => {
-    // Check if the selected date is in the past
+    // Check if the selected date is at least 3 days from today
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+    
+    // Calculate minimum allowed date (today + 3 days)
+    const minAllowedDate = new Date(today);
+    minAllowedDate.setDate(today.getDate() + 3);
+    
     const selectedDateOnly = new Date(date);
     selectedDateOnly.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
     
-    if (selectedDateOnly < today) {
+    if (selectedDateOnly < minAllowedDate) {
+      const minDateFormatted = minAllowedDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
       Toast.show({
         type: 'error',
         text1: 'Invalid Date',
-        text2: 'Cannot select past dates for delivery',
-        visibilityTime: 3000,
+        text2: `Delivery must be scheduled at least 3 days in advance. Earliest date: ${minDateFormatted}`,
+        visibilityTime: 4000,
       });
       return;
     }
@@ -917,6 +988,10 @@ const PaymentScreen = ({ route }) => {
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
 
+    // Calculate minimum allowed date (today + 3 days)
+    const minAllowedDate = new Date(today);
+    minAllowedDate.setDate(today.getDate() + 3);
+
     const days = [];
 
     // Add empty days for padding
@@ -928,12 +1003,16 @@ const PaymentScreen = ({ route }) => {
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(currentYear, currentMonth, i);
       const isToday = i === today.getDate();
-      const isPast = date < today;
+      // Check if date is less than 2 days from today
+      const isTooSoon = date < minAllowedDate;
+      // Check if this is the minimum allowed date (today + 2)
+      const isMinAllowedDate = date.getTime() === minAllowedDate.getTime();
       days.push({
         day: i,
         date: date,
         isToday,
-        disabled: isPast,
+        isMinAllowedDate,
+        disabled: isTooSoon,
       });
     }
 
@@ -1193,6 +1272,7 @@ const PaymentScreen = ({ route }) => {
                       styles.calendarDay,
                       dayObj.disabled && styles.calendarDayDisabled,
                       dayObj.isToday && styles.calendarDayToday,
+                      dayObj.isMinAllowedDate && styles.calendarDayMinAllowed,
                     ]}
                     onPress={() =>
                       !dayObj.disabled &&
@@ -1207,6 +1287,7 @@ const PaymentScreen = ({ route }) => {
                         styles.calendarDayText,
                         dayObj.disabled && styles.calendarDayTextDisabled,
                         dayObj.isToday && styles.calendarDayTextToday,
+                        dayObj.isMinAllowedDate && styles.calendarDayTextMinAllowed,
                       ]}
                     >
                       {dayObj.day}
@@ -1602,6 +1683,11 @@ const styles = StyleSheet.create({
   calendarDayToday: {
     backgroundColor: '#EF3340',
   },
+  calendarDayMinAllowed: {
+    backgroundColor: '#4CAF50',
+    borderWidth: 2,
+    borderColor: '#2E7D32',
+  },
   calendarDayText: {
     fontSize: 14,
     color: '#333',
@@ -1609,6 +1695,10 @@ const styles = StyleSheet.create({
   },
   calendarDayTextDisabled: {
     color: '#ccc',
+  },
+  calendarDayTextMinAllowed: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   calendarDayTextToday: {
     color: 'white',

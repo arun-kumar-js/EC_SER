@@ -36,6 +36,9 @@ export const placeOrder = async orderData => {
     // Tax amount from data
     formData.append('tax_amount', orderData.totals?.tax?.toString() || 'non');
     
+    // Delivery notes
+    formData.append('notes', orderData.deliveryNotes || '');
+    
     // Loyalty points
     formData.append('loyalty_Points_used', 'false');
     formData.append('loyalty_Points', '0.0');
@@ -61,14 +64,14 @@ export const placeOrder = async orderData => {
     // Payment method
     formData.append('payment_method', 'cod');
     
-    // Email from selected address
+    // Complete address data - pass all fields dynamically
     formData.append('email', orderData.selectedAddress?.email || 'non');
-    
-    // Mobile from selected address
     formData.append('mobile', orderData.selectedAddress?.mobile || 'non');
-    
-    // Address from selected address
     formData.append('address', orderData.selectedAddress?.address || 'non');
+    formData.append('name', orderData.selectedAddress?.name || 'non');
+    formData.append('landmark', orderData.selectedAddress?.landmark || 'non');
+    formData.append('pincode', orderData.selectedAddress?.pincode || 'non');
+    formData.append('address_id', orderData.selectedAddress?.id || 'non');
     
     // Wallet balance from data
     formData.append('wallet_balance', orderData.walletBalance?.toString() || 'non');
@@ -77,8 +80,39 @@ export const placeOrder = async orderData => {
     formData.append('delivery_state', orderData.selectedAddress?.state_id || orderData.selectedAddress?.state || 'non');
     formData.append('state_id', orderData.selectedAddress?.state_id || orderData.selectedAddress?.state || 'non');
     
-    // Delivery date from selected address
-    formData.append('delivery_date', orderData.selectedDate || 'non');
+    // Delivery date from selected address - format as YYYY-MM-DD
+    const formatDateForAPI = (dateString) => {
+      if (!dateString || dateString === 'non') return 'non';
+      
+      // Parse the date string "September 21, 2025" manually
+      const dateMatch = dateString.match(/(\w+)\s+(\d+),\s+(\d+)/);
+      if (dateMatch) {
+        const [, monthName, day, year] = dateMatch;
+        
+        // Month name to number mapping
+        const monthMap = {
+          'January': 0, 'February': 1, 'March': 2, 'April': 3,
+          'May': 4, 'June': 5, 'July': 6, 'August': 7,
+          'September': 8, 'October': 9, 'November': 10, 'December': 11
+        };
+        
+        const monthNumber = monthMap[monthName];
+        
+        if (monthNumber !== undefined) {
+          // Create date object manually
+          const date = new Date(parseInt(year), monthNumber, parseInt(day));
+          
+          if (!isNaN(date.getTime())) {
+            const formattedDate = `${year}-${String(monthNumber + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            return formattedDate;
+          }
+        }
+      }
+      
+      return 'non';
+    };
+    
+    formData.append('delivery_date', formatDateForAPI(orderData.selectedDate));
     
     // Delivery charge from data
     formData.append('delivery_charge', orderData.totals?.deliveryCharge?.toString() || 'non');
@@ -108,8 +142,8 @@ export const placeOrder = async orderData => {
     // GST number from data
     formData.append('gst_no', orderData.selectedAddress?.gst_no || orderData.gst_no || 'non');
     
-    // From date (current date)
-    formData.append('from_date', orderData.selectedDate || 'non');
+    // From date (current date) - format as YYYY-MM-DD
+    formData.append('from_date', formatDateForAPI(orderData.selectedDate));
     
     // Quantity from data
     formData.append('quantity', JSON.stringify(quantities));
@@ -130,11 +164,16 @@ export const placeOrder = async orderData => {
     console.log('📧 Email:', user?.email || orderData.selectedAddress?.email || '');
     console.log('📱 Mobile:', orderData.selectedAddress?.mobile || user?.mobile || '');
     console.log('📍 Address:', orderData.selectedAddress?.address || '');
+    console.log('👤 Name:', orderData.selectedAddress?.name || '');
+    console.log('🏷️ Landmark:', orderData.selectedAddress?.landmark || '');
+    console.log('📮 Pincode:', orderData.selectedAddress?.pincode || '');
+    console.log('🆔 Address ID:', orderData.selectedAddress?.id || '');
     console.log('🏛️ State ID:', orderData.selectedAddress?.state_id || orderData.selectedAddress?.state || '');
     console.log('🏙️ City ID:', orderData.selectedAddress?.city_id || orderData.selectedAddress?.city || '');
     console.log('🚚 Delivery Method:', orderData.deliveryMethod?.toLowerCase().replace(/\s+/g, '_') || 'in_person_delivery');
-    console.log('📅 Delivery Date:', orderData.selectedDate || '');
-    console.log('📅 From Date:', orderData.selectedDate || '');
+    console.log('📅 Delivery Date (Original):', orderData.selectedDate || '');
+    console.log('📅 Delivery Date (Formatted):', formatDateForAPI(orderData.selectedDate));
+    console.log('📅 From Date (Formatted):', formatDateForAPI(orderData.selectedDate));
     console.log('⏰ Delivery Time ID:', orderData.selectedDeliveryTime || '');
     console.log('🕐 Time Slot Details:', timeSlotDetails || 'Not found');
     console.log('📋 Available Time Slots:', orderData.timeSlots || 'Not provided');
@@ -165,6 +204,10 @@ export const placeOrder = async orderData => {
       email: user?.email || orderData.selectedAddress?.email,
       mobile: orderData.selectedAddress?.mobile || user?.mobile,
       address: orderData.selectedAddress?.address,
+      name: orderData.selectedAddress?.name,
+      landmark: orderData.selectedAddress?.landmark,
+      pincode: orderData.selectedAddress?.pincode,
+      address_id: orderData.selectedAddress?.id,
       state_id: orderData.selectedAddress?.state_id || orderData.selectedAddress?.state,
       city_id: orderData.selectedAddress?.city_id || orderData.selectedAddress?.city,
       delivery_method: orderData.deliveryMethod
@@ -178,6 +221,7 @@ export const placeOrder = async orderData => {
       payment_method: orderData.selectedPaymentMethod,
       wallet_used: orderData.useWalletBalance ? 'true' : 'false',
       wallet_balance: orderData.walletBalance?.toString(),
+      notes: orderData.deliveryNotes || '',
       total_items: cartItems.length.toString(),
       product_variant_id: JSON.stringify(productIds),
       quantity: JSON.stringify(quantities),

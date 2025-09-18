@@ -8,7 +8,7 @@ export const PUSHER_BEAMS_CONFIG = {
   
   // Your Pusher Beams Secret Key
   // Get this from your Pusher Beams dashboard
-  SECRET_KEY: 'YOUR_PUSHER_BEAMS_SECRET_KEY',
+  SECRET_KEY: 'C72538638C469F68E234DFE6EA095E912B0AE8DD9345D5C63AAF65E62C8F46D0',
   
   // Default interests to subscribe to
   DEFAULT_INTERESTS: [

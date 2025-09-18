@@ -22,10 +22,21 @@ const PrivacyPolicy = ({ navigation }) => {
   const parsePrivacyContent = (htmlContent) => {
     if (!htmlContent) return [];
     
+    // First, remove all question mark emojis from the entire HTML content
+    htmlContent = htmlContent
+      .replace(/❓/g, '') // Remove question mark emoji
+      .replace(/❓\s*/g, '') // Remove question mark emoji with spaces
+      .replace(/\s*❓/g, '') // Remove spaces before question mark emoji
+      .replace(/\s*❓\s*/g, '') // Remove spaces around question mark emoji
+      .replace(/\[\?\]/g, '') // Remove [?] patterns
+      .replace(/\[.*?\]/g, '') // Remove any square bracket content
+      .replace(/\?\s*/g, '') // Remove question marks
+      .replace(/\s*\?\s*/g, ''); // Remove spaces around question marks
+    
     const contentBlocks = [];
     
-    // Use a more comprehensive regex to match all HTML tags
-    const regex = /<(h[2-3]|p)(?:[^>]*)>(.*?)<\/(h[2-3]|p)>/gs;
+    // Use a more comprehensive regex to match all HTML tags including strong tags
+    const regex = /<(h[2-3]|p|strong)(?:[^>]*)>(.*?)<\/(h[2-3]|p|strong)>/gs;
     let match;
 
     while ((match = regex.exec(htmlContent)) !== null) {
@@ -44,18 +55,29 @@ const PrivacyPolicy = ({ navigation }) => {
         .replace(/\r\n/g, '\n')
         .replace(/\n\s*\n/g, '\n')
         .replace(/\s+/g, ' ')
-        .replace(/\[\?\]/g, '•') // Replace [?] with bullet points
-        .replace(/\?\s*/g, '• ') // Replace question marks with bullet points
-        .replace(/\[.*?\]/g, '•') // Replace any square bracket content with bullet points
+        .replace(/\[\?\]/g, '') // Remove [?] completely
+        .replace(/\[.*?\]/g, '') // Remove any square bracket content
         .replace(/⸻/g, '') // Remove section dividers
-        .replace(/\s*\?\s*/g, '• ') // Replace any remaining question marks with bullet points
-        .replace(/\s*\[\s*\?\s*\]\s*/g, '• ') // Replace [?] patterns with bullet points
+        .replace(/\s*\[\s*\?\s*\]\s*/g, '') // Remove [?] patterns completely
+        .replace(/❓/g, '') // Remove question mark emoji
+        .replace(/❓\s*/g, '') // Remove question mark emoji with spaces
+        .replace(/\s*❓/g, '') // Remove spaces before question mark emoji
+        .replace(/\s*❓\s*/g, '') // Remove spaces around question mark emoji
+        .replace(/\?\s*/g, '') // Remove question marks completely
+        .replace(/\s*\?\s*/g, '') // Remove any remaining question marks
+        .replace(/\?\s*$/g, '') // Remove trailing question marks
+        .replace(/^\s*\?\s*/g, '') // Remove leading question marks
+        .replace(//g, '•') // Replace bullet symbol "" with standard bullet "•"
+        .replace(/•/g, '• ') // Ensure bullet points have proper spacing
+        .replace(/\s*•\s*/g, '• ') // Normalize bullet point spacing
         .trim();
 
       if (!text) continue;
 
-      // Skip the main title as we'll add it separately
-      if (text.includes('Privacy Policy for EC Service') || text.includes('Effective Date')) {
+      // Skip the main title and effective date as we'll add them separately
+      if (text.includes('Privacy Policy for EC Service') || 
+          text.includes('Effective Date') ||
+          text.includes('[10-01-2025]')) {
         continue;
       }
 
@@ -191,11 +213,6 @@ const PrivacyPolicy = ({ navigation }) => {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {privacyData && privacyData.privacy ? (
           <View>
-            <Text style={styles.title}>Privacy Policy</Text>
-            <Text style={styles.lastUpdated}>
-              Last updated: {new Date().toLocaleDateString()}
-            </Text>
-            
             <View style={styles.section}>
               {parsePrivacyContent(privacyData.privacy).map((block, index) => {
                 if (block.type === 'heading') {
@@ -399,5 +416,3 @@ const styles = StyleSheet.create({
 });
 
 export default PrivacyPolicy;
-
-

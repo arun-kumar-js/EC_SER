@@ -19,7 +19,6 @@
 		5B7EEB3487BE4530A2DD5559 /* Montserrat-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2C228DB10B1D4CAF80994344 /* Montserrat-SemiBold.ttf */; };
 		68316218CF494DB385670235 /* Montserrat-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 216631E5575D4B64B54B7273 /* Montserrat-Italic.ttf */; };
 		69701791C1479C1DD8215892 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		7539DD3140CE9E944015F07F /* libPods-Ec_Services.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 668349805ABFAF406DBEA2DB /* libPods-Ec_Services.a */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		9F44C8E334094D5A98B828D8 /* Montserrat-ExtraBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 405569CBF561471EB4678B90 /* Montserrat-ExtraBoldItalic.ttf */; };
@@ -30,6 +29,7 @@
 		C1B756AF63014828A6B43A47 /* Montserrat-LightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 33F2EED4889144ADB2FBE0E8 /* Montserrat-LightItalic.ttf */; };
 		C78C3F4DFD664A9C975276D8 /* README.txt in Resources */ = {isa = PBXBuildFile; fileRef = 118F8F7CDE264AD793174F76 /* README.txt */; };
 		C80C55EF15474DCABBD42579 /* Montserrat-ExtraLightItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3695FEA44572470E9B24AF4E /* Montserrat-ExtraLightItalic.ttf */; };
+		D2661BA0089F50963547B183 /* libPods-Ec_Services.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D54D856FBA1D60E5D6C3F8EE /* libPods-Ec_Services.a */; };
 		E840F7E66D3D42A583FAA797 /* Montserrat-MediumItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8205DAFED7754D7F97FA9379 /* Montserrat-MediumItalic.ttf */; };
 		E9CC0D03C3964477A0B9D813 /* Montserrat-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3F5D2E60CD5443CDA55CA289 /* Montserrat-ExtraBold.ttf */; };
 		F810BB5424A643D0BCFCD042 /* Montserrat-ThinItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AB781D376AA248FB82D284AF /* Montserrat-ThinItalic.ttf */; };
@@ -46,6 +46,7 @@
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = Ec_Services/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		216631E5575D4B64B54B7273 /* Montserrat-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Italic.ttf"; path = "../src/Assets/fonts/Montserrat-Italic.ttf"; sourceTree = "<group>"; };
 		2C228DB10B1D4CAF80994344 /* Montserrat-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-SemiBold.ttf"; path = "../src/Assets/fonts/Montserrat-SemiBold.ttf"; sourceTree = "<group>"; };
+		30DCB0D5CCBE6B3D3DAA0A99 /* Pods-Ec_Services.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Ec_Services.debug.xcconfig"; path = "Target Support Files/Pods-Ec_Services/Pods-Ec_Services.debug.xcconfig"; sourceTree = "<group>"; };
 		33F2EED4889144ADB2FBE0E8 /* Montserrat-LightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-LightItalic.ttf"; path = "../src/Assets/fonts/Montserrat-LightItalic.ttf"; sourceTree = "<group>"; };
 		3695FEA44572470E9B24AF4E /* Montserrat-ExtraLightItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-ExtraLightItalic.ttf"; path = "../src/Assets/fonts/Montserrat-ExtraLightItalic.ttf"; sourceTree = "<group>"; };
 		3F5D2E60CD5443CDA55CA289 /* Montserrat-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-ExtraBold.ttf"; path = "../src/Assets/fonts/Montserrat-ExtraBold.ttf"; sourceTree = "<group>"; };
@@ -54,9 +55,8 @@
 		41651D685B974E2187D78B7D /* OFL.txt */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = OFL.txt; path = ../src/Assets/fonts/OFL.txt; sourceTree = "<group>"; };
 		4286D612A02E4ED59992768C /* Montserrat-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Black.ttf"; path = "../src/Assets/fonts/Montserrat-Black.ttf"; sourceTree = "<group>"; };
 		46BF72E0B4F642AA90614584 /* Montserrat-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Bold.ttf"; path = "../src/Assets/fonts/Montserrat-Bold.ttf"; sourceTree = "<group>"; };
-		668349805ABFAF406DBEA2DB /* libPods-Ec_Services.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Ec_Services.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		529C01E39189F1AA3195A9B2 /* Pods-Ec_Services.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Ec_Services.release.xcconfig"; path = "Target Support Files/Pods-Ec_Services/Pods-Ec_Services.release.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Ec_Services/AppDelegate.swift; sourceTree = "<group>"; };
-		7D87FF411E9053F1256C62E7 /* Pods-Ec_Services.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Ec_Services.debug.xcconfig"; path = "Target Support Files/Pods-Ec_Services/Pods-Ec_Services.debug.xcconfig"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = Ec_Services/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		8205DAFED7754D7F97FA9379 /* Montserrat-MediumItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-MediumItalic.ttf"; path = "../src/Assets/fonts/Montserrat-MediumItalic.ttf"; sourceTree = "<group>"; };
 		8895747E8DC54CE4894A433B /* Montserrat-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Light.ttf"; path = "../src/Assets/fonts/Montserrat-Light.ttf"; sourceTree = "<group>"; };
@@ -65,7 +65,7 @@
 		B4F76154CB074397B53E3571 /* Montserrat-Thin.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Thin.ttf"; path = "../src/Assets/fonts/Montserrat-Thin.ttf"; sourceTree = "<group>"; };
 		B5E689077DB94E95BCB5DA6B /* Montserrat-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Regular.ttf"; path = "../src/Assets/fonts/Montserrat-Regular.ttf"; sourceTree = "<group>"; };
 		B69C6BE01B8C46B1B2DA3BF0 /* Montserrat-Italic-VariableFont_wght.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Italic-VariableFont_wght.ttf"; path = "../src/Assets/fonts/Montserrat-Italic-VariableFont_wght.ttf"; sourceTree = "<group>"; };
-		C606DF366B7C4A236D95EC67 /* Pods-Ec_Services.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Ec_Services.release.xcconfig"; path = "Target Support Files/Pods-Ec_Services/Pods-Ec_Services.release.xcconfig"; sourceTree = "<group>"; };
+		D54D856FBA1D60E5D6C3F8EE /* libPods-Ec_Services.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Ec_Services.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6E75B0FBD964BE7AF76DED4 /* Montserrat-SemiBoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-SemiBoldItalic.ttf"; path = "../src/Assets/fonts/Montserrat-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		E1043D860F01434EA1D4EFC2 /* Montserrat-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Montserrat-Medium.ttf"; path = "../src/Assets/fonts/Montserrat-Medium.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -76,7 +76,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7539DD3140CE9E944015F07F /* libPods-Ec_Services.a in Frameworks */,
+				D2661BA0089F50963547B183 /* libPods-Ec_Services.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -128,7 +128,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				668349805ABFAF406DBEA2DB /* libPods-Ec_Services.a */,
+				D54D856FBA1D60E5D6C3F8EE /* libPods-Ec_Services.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -166,8 +166,8 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				7D87FF411E9053F1256C62E7 /* Pods-Ec_Services.debug.xcconfig */,
-				C606DF366B7C4A236D95EC67 /* Pods-Ec_Services.release.xcconfig */,
+				30DCB0D5CCBE6B3D3DAA0A99 /* Pods-Ec_Services.debug.xcconfig */,
+				529C01E39189F1AA3195A9B2 /* Pods-Ec_Services.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -179,13 +179,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Ec_Services" */;
 			buildPhases = (
-				E56AE01E63BA27BBBBE57F2D /* [CP] Check Pods Manifest.lock */,
+				19A28033991E91BA24F74653 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				C95C23407CB8389FAF361FE0 /* [CP] Embed Pods Frameworks */,
-				328BA8D6B555BFBC035EFC27 /* [CP] Copy Pods Resources */,
+				3AAD1C8DA90CD5EC30AA2399 /* [CP] Embed Pods Frameworks */,
+				8D3400B2B15027F66F8F4536 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -279,41 +279,7 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		328BA8D6B555BFBC035EFC27 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		C95C23407CB8389FAF361FE0 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		E56AE01E63BA27BBBBE57F2D /* [CP] Check Pods Manifest.lock */ = {
+		19A28033991E91BA24F74653 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -335,6 +301,40 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		3AAD1C8DA90CD5EC30AA2399 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		8D3400B2B15027F66F8F4536 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Ec_Services/Pods-Ec_Services-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -351,13 +351,13 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7D87FF411E9053F1256C62E7 /* Pods-Ec_Services.debug.xcconfig */;
+			baseConfigurationReference = 30DCB0D5CCBE6B3D3DAA0A99 /* Pods-Ec_Services.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 9VCJV7F4MC;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Ec_Services/Info.plist;
@@ -366,7 +366,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -383,13 +383,13 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C606DF366B7C4A236D95EC67 /* Pods-Ec_Services.release.xcconfig */;
+			baseConfigurationReference = 529C01E39189F1AA3195A9B2 /* Pods-Ec_Services.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 9VCJV7F4MC;
 				INFOPLIST_FILE = Ec_Services/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -397,7 +397,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

@@ -21,8 +21,11 @@ export const AppTrackingTransparencyService = {
       const currentStatus = await getTrackingStatus();
       console.log('Current tracking status:', currentStatus);
       
+      // Use fallback constants if TrackingStatus is not available
+      const statusConstants = TrackingStatus || TRACKING_STATUS;
+      
       // If already authorized or denied, return current status
-      if (currentStatus === TrackingStatus.authorized || currentStatus === TrackingStatus.denied) {
+      if (currentStatus === statusConstants.authorized || currentStatus === statusConstants.denied) {
         return {
           success: true,
           status: currentStatus,

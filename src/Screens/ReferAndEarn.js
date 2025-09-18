@@ -10,6 +10,7 @@ import {
   Clipboard,
   Dimensions,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
@@ -113,10 +114,26 @@ const ReferAndEarn = ({ navigation }) => {
     Alert.alert('Copied!', 'Referral code copied to clipboard');
   };
 
-  const shareReferral = () => {
-    const message = `Join me on EC Service! Use my referral code: ${referralCode} and get amazing deals!`;
-    // You can implement actual sharing functionality here
-    Alert.alert('Share', message);
+  const shareReferral = async () => {
+    try {
+      const message = `Join me on EC Service! Use my referral code: ${referralCode} and get amazing deals!`;
+      
+      const result = await Share.share({
+        message: message,
+        title: 'EC Service Referral',
+      });
+
+      if (result.action === Share.sharedAction) {
+        // Content was shared successfully
+        console.log('Referral shared successfully');
+      } else if (result.action === Share.dismissedAction) {
+        // Sharing was dismissed
+        console.log('Sharing dismissed');
+      }
+    } catch (error) {
+      console.error('Error sharing referral:', error);
+      Alert.alert('Error', 'Failed to share referral. Please try again.');
+    }
   };
 
   return (

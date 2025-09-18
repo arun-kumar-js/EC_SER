@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0.1">
+<plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
@@ -35,8 +35,10 @@
 	<string>This app requires access to your location to provide door step deliver to find that exact location of delivery our products </string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app requires access to your location to provide door step deliver to find that exact location of delivery our products </string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>This app would like to track you across other apps and websites to provide personalized ads and improve your shopping experience. This helps us show you relevant products and offers.</string>
 	<key>RCTNewArchEnabled</key>
-	<false/>
+	<true/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Ionicons.ttf</string>

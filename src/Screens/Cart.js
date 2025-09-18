@@ -75,8 +75,9 @@ const Cart = ({ navigation }) => {
       item.variants && item.variants.length > 0
         ? item.variants[0].measurement_unit_name || '-'
         : '-';
-    const price = item.price || item.variants[0].product_price || '0.00';
+    const unitPrice = item.variants[0].product_price || 0;
     const quantity = item.quantity || 0;
+    const calculatedPrice = unitPrice * quantity;
 
     return (
       <View style={styles.itemContainer}>
@@ -90,7 +91,7 @@ const Cart = ({ navigation }) => {
           <Text>Qty: {measurementUnit}</Text>
           <View style={styles.priceRow}>
             <Text style={styles.rmText}>RM</Text>
-            <Text style={styles.priceText}>{price}</Text>
+            <Text style={styles.priceText}>{calculatedPrice.toFixed(2)}</Text>
           </View>
           <View style={styles.bottomRow}>
             <View style={styles.qtyContainer}>
@@ -124,7 +125,7 @@ const Cart = ({ navigation }) => {
     (sum, item) =>
       sum +
       (item.quantity || 0) *
-        (item.price || item.variants[0].product_price || 0),
+        (item.variants[0].product_price || 0),
     0,
   );
 

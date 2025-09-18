@@ -544,37 +544,7 @@ const OrderDatials = ({ route, navigation }) => {
           >
             <Text style={styles.reviewOrderButtonText}>REVIEW</Text>
           </TouchableOpacity>
-        ) : (
-          // Only show cancel button if order can be cancelled and is not already cancelled
-          !isOrderNonCancellable(orderData.active_status) && 
-          !['Cancelled', 'cancel', 'cancelled'].includes(orderData.active_status?.toLowerCase()) && (
-            <TouchableOpacity 
-              style={[styles.cancelOrderButton, isCancelling && styles.cancelOrderButtonDisabled]}
-              onPress={() => {
-                Alert.alert(
-                  'Cancel Order',
-                  'Are you sure you want to cancel this order?',
-                  [
-                    {
-                      text: 'No',
-                      style: 'cancel'
-                    },
-                    {
-                      text: 'Yes, Cancel',
-                      style: 'destructive',
-                      onPress: cancelOrder
-                    }
-                  ]
-                );
-              }}
-              disabled={isCancelling}
-            >
-              <Text style={styles.cancelOrderButtonText}>
-                {isCancelling ? 'CANCELLING...' : 'CANCEL ORDER?'}
-              </Text>
-            </TouchableOpacity>
-          )
-        )}
+        ) : null}
       </View>
     </SafeAreaView>
   );

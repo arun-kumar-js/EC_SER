@@ -37,6 +37,7 @@ const TermsAndCondition = ({ navigation }) => {
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'")
         .replace(/&nbsp;/g, ' ')
+        .replace(//g, '•')
         .replace(/\r\n/g, '\n')
         .replace(/\n\s*\n/g, '\n')
         .replace(/\s+/g, ' ')
@@ -325,5 +326,3 @@ const styles = StyleSheet.create({
 });
 
 export default TermsAndCondition;
-
-

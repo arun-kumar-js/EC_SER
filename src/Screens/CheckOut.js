@@ -174,28 +174,8 @@ const CheckOutScreen = ({ route }) => {
           console.log('✅ Processed Store Settings:', newSettings);
           setStoreSettings(newSettings);
         } else {
-          console.log('❌ Failed to load store settings, using fallback values');
-          // Use fallback values when API fails
-          setStoreSettings({
-            tax: 8, // 8% tax as per your API response
-            delivery_charge: 5, // 5 delivery charge as per your API response
-            currency: 'RM',
-            currency_symbol: 'RM',
-            min_order_amount: 100,
-            free_delivery_amount: 0,
-            app_name: 'EC Services',
-            support_number: '+6013-2439343',
-            support_email: 'rrk@ecservices.com.my',
-            whatsapp_number: '+60 13-2439343',
-            gst_no: 'IG27061622050',
-            address: 'NO.3,JALAN INAI 5,SEK BB3,BANDAR BUKIT BERUTUNG ,48300 RAWANG,',
-            system_timezone: 'Asia/Kuala_Lumpur',
-            is_refer_earn_on: true,
-            refer_earn_bonus: 5,
-            refer_earn_method: 'percentage',
-            max_refer_earn_amount: 110,
-            min_refer_earn_order_amount: 100
-          });
+          console.log('❌ Failed to load store settings from API');
+          // Don't set fallback values - only use API values
         }
 
         // Load delivery methods
@@ -282,8 +262,17 @@ const CheckOutScreen = ({ route }) => {
       return;
     }
 
-    const currentTotal = calculateTotals().subtotal;
+    const totals = calculateTotals();
+    // Pass the total before promo discount is applied
+    const currentTotal = totals.subtotal + totals.tax + totals.deliveryCharge;
     const userId = user.user_id || user.id;
+
+    console.log('=== PROMO CODE VALIDATION DEBUG ===');
+    console.log('Subtotal:', totals.subtotal);
+    console.log('Tax:', totals.tax);
+    console.log('Delivery Charge:', totals.deliveryCharge);
+    console.log('Total before promo (being sent to API):', currentTotal);
+    console.log('Total after promo (current):', totals.total);
 
     try {
       const result = await validatePromoCode(
@@ -294,9 +283,19 @@ const CheckOutScreen = ({ route }) => {
 
       if (result.success) {
         setPromoApplied(true);
-        setPromoDiscount(result.discount);
+        // Use the calculated discount amount (in currency, not percentage)
+        const discountAmount = result.discountAmount || 0;
+        setPromoDiscount(discountAmount);
         setPromoMessage(result.message);
-        Alert.alert('Success', result.message);
+        
+        console.log('=== PROMO CODE APPLIED SUCCESSFULLY ===');
+        console.log('Discount Percentage:', result.discountPercentage + '%');
+        console.log('Discount Amount (RM):', discountAmount);
+        console.log('Original Total:', result.originalTotal);
+        console.log('Discounted Amount:', result.discountedAmount);
+        console.log('Final Total:', result.finalTotal);
+        
+        Alert.alert('Success', `${result.message}\n${result.discountPercentage}% discount applied!`);
       } else {
         setPromoApplied(false);
         setPromoDiscount(0);
@@ -538,7 +537,7 @@ const CheckOutScreen = ({ route }) => {
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Promo Discount</Text>
                 <Text style={[styles.summaryValue, styles.discountValue]}>
-                  - {storeSettings.currency_symbol} {promoDiscount.toFixed(2)}
+                  - {storeSettings.currency_symbol} {(promoDiscount || 0).toFixed(2)}
                 </Text>
               </View>
             )}

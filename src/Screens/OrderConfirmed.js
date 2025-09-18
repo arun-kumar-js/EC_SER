@@ -106,9 +106,9 @@ const OrderConfirmed = ({ route, navigation }) => {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          
         >
-          <Icon name="arrow-back" size={24} color="#fff" />
+          
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Order placed</Text>
         <View style={styles.headerSpacer} />

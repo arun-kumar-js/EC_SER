@@ -41,7 +41,6 @@ import HomeScreen from './src/Screens/BottomTap/Home';
 import { CartProvider } from './src/Context/CartContext';
 import Toast from 'react-native-toast-message';
 import { initDB } from './src/DataBase/db';
-import AppTrackingTransparencyService from './src/Fuctions/AppTrackingTransparencyService';
 import pusherBeamsService from './src/Fuctions/PusherBeamsService';
 import { PUSHER_BEAMS_CONFIG } from './src/config/PusherBeamsConfig';
 
@@ -60,22 +59,6 @@ const App = () => {
     });
   }, []);
 
-  // Request App Tracking Transparency permission on app start
-  React.useEffect(() => {
-    const requestTrackingPermission = async () => {
-      try {
-        // Wait a bit for the app to fully load
-        setTimeout(async () => {
-          const result = await AppTrackingTransparencyService.requestTrackingPermission();
-          console.log('ATT Permission Result:', result);
-        }, 2000); // 2 second delay
-      } catch (error) {
-        console.error('Error requesting tracking permission:', error);
-      }
-    };
-
-    requestTrackingPermission();
-  }, []);
 
   // Initialize Pusher Beams on app start
   React.useEffect(() => {
@@ -103,7 +86,7 @@ const App = () => {
           }
           
           // Add notification listener
-          pusherBeamsService.addNotificationListener((notification) => {
+          pusherBeamsService.addNotificationListener((notification: any) => {
             console.log('Notification received in App:', notification);
             // Handle notification display or navigation here
             // You can add navigation logic based on notification data
