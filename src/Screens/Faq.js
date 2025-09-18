@@ -73,7 +73,7 @@ const Faq = ({ navigation }) => {
       formData.append('get_faq', '1');
 
       const response = await axios.post(
-        'https://spiderekart.in/india_demo_v3/pages_web/faq.php',
+        'https://spiderekart.in/ec_service/pages_web/faq.php',
         formData,
         {
           headers: {

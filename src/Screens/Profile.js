@@ -88,6 +88,7 @@ const ProfileScreen = ({ navigation }) => {
     dateOfBirth: '',
     state_id: '',
     city_id: '',
+    area_id: '',
     gst_no: '',
     landmark: '',
   });
@@ -266,6 +267,7 @@ const ProfileScreen = ({ navigation }) => {
               dateOfBirth: userResult.data.dob || '',
               state_id: userResult.data.state_id || selectedState?.id || '',
               city_id: userResult.data.city_id || selectedCity?.id || '',
+              area_id: userResult.data.area_id || '',
               gst_no: userResult.data.gst_no || '',
               landmark: userResult.data.landmark || '',
             };
@@ -469,6 +471,7 @@ const ProfileScreen = ({ navigation }) => {
         address: formData.address,
         state_id: formData.state_id || selectedState?.id || '',
         city_id: formData.city_id || selectedCity?.id || '',
+        area_id: formData.area_id || '',
         zipCode: formData.zipCode,
         gst_no: formData.gst_no || '',
         landmark: formData.landmark || '',
@@ -491,21 +494,61 @@ const ProfileScreen = ({ navigation }) => {
           position: 'top',
         });
         
-        // Update local user data
-        setUserData(prev => ({
-          ...prev,
+        // Update local user data immediately
+        const updatedUserData = {
+          ...userData,
           name: formData.name,
           email: formData.email,
           mobile: formData.mobile,
           street: formData.address,
           pincode: formData.zipCode,
-        }));
+          state_name: formData.state,
+          city_name: formData.city,
+          state_id: formData.state_id,
+          city_id: formData.city_id,
+          area_id: formData.area_id,
+          gst_no: formData.gst_no,
+          landmark: formData.landmark,
+          dob: formData.dateOfBirth,
+          latitude: currentLocation.latitude.toString(),
+          longitude: currentLocation.longitude.toString(),
+        };
+        
+        // Update user data state
+        setUserData(updatedUserData);
+        
+        // Update AsyncStorage with the new data
+        await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
+        console.log('Updated user data in AsyncStorage:', updatedUserData);
 
         // Exit edit mode
         setIsEditMode(false);
         
-        // Refresh profile data
-        await loadUserData();
+        // Force update display values
+        setDisplayValues({
+          name: formData.name,
+          email: formData.email,
+          mobile: formData.mobile,
+          state: formData.state,
+          city: formData.city,
+          zipCode: formData.zipCode,
+          address: formData.address,
+          dateOfBirth: formData.dateOfBirth,
+          gst_no: formData.gst_no,
+          landmark: formData.landmark,
+        });
+        
+        // Force re-render
+        setForceUpdate(prev => prev + 1);
+        
+        console.log('=== PROFILE UPDATE SUCCESS ===');
+        console.log('Updated user data:', updatedUserData);
+        console.log('Updated display values:', {
+          name: formData.name,
+          email: formData.email,
+          mobile: formData.mobile,
+        });
+        console.log('Profile updated successfully. New name:', formData.name);
       } else {
         Toast.show({
           type: 'error',
@@ -605,6 +648,7 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Name</Text>
             <TextInput
+              key={`name-${forceUpdate}`}
               style={[styles.input, !isEditMode && styles.readOnlyInput]}
               value={displayValues.name}
               onChangeText={isEditMode ? (text) => {
@@ -619,6 +663,7 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
+              key={`email-${forceUpdate}`}
               style={[styles.input, !isEditMode && styles.readOnlyInput]}
               value={displayValues.email}
               onChangeText={isEditMode ? (text) => {
@@ -634,6 +679,7 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Mobile No</Text>
             <TextInput
+              key={`mobile-${forceUpdate}`}
               style={[styles.input, !isEditMode && styles.readOnlyInput]}
               value={displayValues.mobile}
               onChangeText={isEditMode ? (text) => {

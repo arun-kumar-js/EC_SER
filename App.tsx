@@ -39,6 +39,7 @@ import NotificationScreen from './src/Screens/Notification';
 import ShareApp from './src/Screens/ShareApp';
 import HomeScreen from './src/Screens/BottomTap/Home';
 import { CartProvider } from './src/Context/CartContext';
+import { UserProfileProvider } from './src/Context/UserProfileContext';
 import Toast from 'react-native-toast-message';
 import { initDB } from './src/DataBase/db';
 import pusherBeamsService from './src/Fuctions/PusherBeamsService';
@@ -109,53 +110,55 @@ const App = () => {
   }, []);
 
   return (
-    <CartProvider>
-      <NavigationContainer>
-        <Stack.Navigator
-          initialRouteName="MainDrawer"
-          screenOptions={{ headerShown: false }}
-        >
-          <Stack.Screen name="MainDrawer" component={DrawerNav} />
-          <Stack.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen name="AddressPage" component={AddressPage} />
-          <Stack.Screen name="AddAddress" component={AddAddress} />
-          <Stack.Screen name="SubCategory" component={SubCategory} />
-          <Stack.Screen name="ProductDetails" component={ProductDetails} />
-          <Stack.Screen name="Cart" component={Cart} />
-          <Stack.Screen name="CheckOut" component={CheckOut} />
-          <Stack.Screen name="Payment" component={Payment} />
-          <Stack.Screen name="OrderConfirmed" component={OrderConfirmed} />
-          <Stack.Screen name="BillPlzWebView" component={BillPlzWebView} />
-          <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="OtpScreen" component={OtpScreen} />
-          <Stack.Screen name="Profile" component={Profile} />
-          <Stack.Screen name="Orders" component={Orders} />
-          <Stack.Screen name="Settings" component={Settings} />
-          <Stack.Screen name="Support" component={Support} />
-          <Stack.Screen name="About" component={About} />
-          <Stack.Screen name="ContactUs" component={ContactUs} />
-          <Stack.Screen name="Faq" component={Faq} />
-          <Stack.Screen name="TermsAndCondition" component={TermsAndCondition} />
-          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
-          <Stack.Screen name="MyOrders" component={MyOrders} />
-          {/* <Stack.Screen name="Rating" component={Rating} /> */}
-          <Stack.Screen name="OrderDatials" component={OrderDatials} />
-          <Stack.Screen name="Search" component={Search} />
-          <Stack.Screen name="PaymentFailure" component={PaymentFailure} />
-          <Stack.Screen name="Notification" component={NotificationScreen} />
-          <Stack.Screen name="ShareApp" component={ShareApp} />
-          <Stack.Screen name="ReferEarn" component={Support} />
-          
-        </Stack.Navigator>
-        <Toast />
-      </NavigationContainer>
-    </CartProvider>
+    <UserProfileProvider>
+      <CartProvider>
+        <NavigationContainer>
+          <Stack.Navigator
+            initialRouteName="MainDrawer"
+            screenOptions={{ headerShown: false }}
+          >
+            <Stack.Screen name="MainDrawer" component={DrawerNav} />
+            <Stack.Screen
+              name="Home"
+              component={HomeScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen name="AddressPage" component={AddressPage} />
+            <Stack.Screen name="AddAddress" component={AddAddress} />
+            <Stack.Screen name="SubCategory" component={SubCategory} />
+            <Stack.Screen name="ProductDetails" component={ProductDetails} />
+            <Stack.Screen name="Cart" component={Cart} />
+            <Stack.Screen name="CheckOut" component={CheckOut} />
+            <Stack.Screen name="Payment" component={Payment} />
+            <Stack.Screen name="OrderConfirmed" component={OrderConfirmed} />
+            <Stack.Screen name="BillPlzWebView" component={BillPlzWebView} />
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="OtpScreen" component={OtpScreen} />
+            <Stack.Screen name="Profile" component={Profile} />
+            <Stack.Screen name="Orders" component={Orders} />
+            <Stack.Screen name="Settings" component={Settings} />
+            <Stack.Screen name="Support" component={Support} />
+            <Stack.Screen name="About" component={About} />
+            <Stack.Screen name="ContactUs" component={ContactUs} />
+            <Stack.Screen name="Faq" component={Faq} />
+            <Stack.Screen name="TermsAndCondition" component={TermsAndCondition} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+            <Stack.Screen name="MyOrders" component={MyOrders} />
+            {/* <Stack.Screen name="Rating" component={Rating} /> */}
+            <Stack.Screen name="OrderDatials" component={OrderDatials} />
+            <Stack.Screen name="Search" component={Search} />
+            <Stack.Screen name="PaymentFailure" component={PaymentFailure} />
+            <Stack.Screen name="Notification" component={NotificationScreen} />
+            <Stack.Screen name="ShareApp" component={ShareApp} />
+            <Stack.Screen name="ReferEarn" component={Support} />
+            
+          </Stack.Navigator>
+          <Toast />
+        </NavigationContainer>
+      </CartProvider>
+    </UserProfileProvider>
   );
 };
 

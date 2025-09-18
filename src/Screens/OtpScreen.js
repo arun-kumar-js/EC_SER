@@ -17,6 +17,7 @@ import { useRoute } from '@react-navigation/native';
 import { LOGIN_OTP, API_ACCESS_KEY } from '../config/config';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getUserData } from '../Fuctions/UserDataService';
 
 const OTP_LENGTH = 6;
 
@@ -75,9 +76,29 @@ const handleResend = async () => {
       });
       Alert.alert('OTP verification :', response?.data?.message);
       if (response?.data?.error === false) {
+        // Store initial login response
         await AsyncStorage.setItem('userData', JSON.stringify(response.data));
-        navigation.replace('MainDrawer', { screen: 'Home' });
         
+        // Get user ID from login response
+        const userId = response.data.user_id || response.data.id;
+        console.log('User ID from login response:', userId);
+        
+        if (userId) {
+          // Fetch complete user data using the API
+          console.log('Fetching complete user data...');
+          const userDataResult = await getUserData(userId);
+          
+          if (userDataResult.success && userDataResult.data) {
+            console.log('Complete user data fetched successfully:', userDataResult.data);
+            // Update AsyncStorage with complete user data
+            await AsyncStorage.setItem('userData', JSON.stringify(userDataResult.data));
+            console.log('Updated user data stored in AsyncStorage');
+          } else {
+            console.log('Failed to fetch complete user data, using login response data');
+          }
+        }
+        
+        navigation.replace('MainDrawer', { screen: 'Home' });
       }
     } catch (error) {
       Alert.alert('OTP verification error:', error.message || 'An error occurred');

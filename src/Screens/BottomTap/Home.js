@@ -142,6 +142,14 @@ const HomeScreen = () => {
           if (balanceResult.success) {
             setWalletBalance(balanceResult.balance);
             console.log('Wallet balance loaded:', balanceResult.balance);
+            
+            // If we got updated user data from the API, update the user state
+            if (balanceResult.userData) {
+              console.log('Updating user data with API response:', balanceResult.userData);
+              setUserData(balanceResult.userData);
+              // Update AsyncStorage with the latest user data
+              await AsyncStorage.setItem('userData', JSON.stringify(balanceResult.userData));
+            }
           }
         }
       }

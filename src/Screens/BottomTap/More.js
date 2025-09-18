@@ -16,8 +16,8 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getUserData, getWalletBalance } from '../../Fuctions/UserDataService';
+import { getWalletBalance } from '../../Fuctions/UserDataService';
+import { useUserProfile } from '../../Context/UserProfileContext';
 
 const ListItem = ({ icon, label, onPress }) => (
   <TouchableOpacity style={styles.listItem} onPress={onPress}>
@@ -28,7 +28,7 @@ const ListItem = ({ icon, label, onPress }) => (
 
 const More = () => {
   const navigation = useNavigation();
-  const [user, setUser] = useState(null);
+  const { userData: user, isLoading: userLoading, clearUserData } = useUserProfile();
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -95,18 +95,13 @@ const More = () => {
     try {
       setLoading(true);
 
-      // Get user data from AsyncStorage
-      const storedUser = await AsyncStorage.getItem('userData');
-      console.log('=== MORE PAGE: STORED USER DATA ===');
-      console.log('Raw stored user:', storedUser);
+      // User data is now managed by UserProfileContext
+      console.log('=== MORE PAGE: USER DATA FROM CONTEXT ===');
+      console.log('User data from context:', user);
 
-      if (storedUser) {
-        const userObj = JSON.parse(storedUser);
-        console.log('Parsed user object:', userObj);
-        setUser(userObj);
-
+      if (user) {
         // Get wallet balance from API
-        const userId = userObj.user_id || userObj.id;
+        const userId = user.user_id || user.id;
         console.log('User ID for wallet balance:', userId);
 
         if (userId) {
@@ -118,7 +113,7 @@ const More = () => {
           }
         }
       } else {
-        console.log('No user data found in AsyncStorage');
+        console.log('No user data found in context');
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -183,8 +178,8 @@ const More = () => {
         style: 'destructive',
         onPress: async () => {
           try {
-            // Clear all user data from AsyncStorage
-            await AsyncStorage.multiRemove(['userData', 'userToken']);
+            // Clear user data using context
+            await clearUserData();
             console.log('User logged out successfully');
 
             // Navigate to login screen
@@ -207,7 +202,17 @@ const More = () => {
 
   useEffect(() => {
     fetchUserData();
-  }, []);
+  }, [user]);
+
+  // Add focus listener to refresh data when returning from Profile screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('More screen focused - refreshing user data');
+      fetchUserData();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>

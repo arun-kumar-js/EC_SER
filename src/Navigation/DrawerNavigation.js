@@ -2,7 +2,6 @@ import React from 'react';
 import { createDrawerNavigator, useDrawerStatus } from '@react-navigation/drawer';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, SafeAreaView, Alert, Linking } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -11,48 +10,16 @@ import {
 // Import your existing screens
 import BottomTap from './BottomTap';
 import ReferAndEarn from '../Screens/ReferAndEarn';
-import { getUserData } from '../Fuctions/UserDataService';
 import { deleteAccount } from '../Fuctions/DeleteAccountService';
+import { useUserProfile } from '../Context/UserProfileContext';
 
 const Drawer = createDrawerNavigator();
 
 // Custom Drawer Content Component
 const CustomDrawerContent = (props) => {
   const { navigation } = props;
-  const [userData, setUserData] = React.useState(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const { userData, isLoading, clearUserData } = useUserProfile();
   const drawerStatus = useDrawerStatus();
-
-  // Load user data from AsyncStorage
-  React.useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem('userData');
-        
-        if (storedUser) {
-          const userObj = JSON.parse(storedUser);
-          setUserData(userObj);
-
-          // Try to fetch latest profile from API
-          const userId = userObj?.user_id || userObj?.id;
-          if (userId) {
-            const result = await getUserData(userId);
-            
-            if (result?.success && result?.data) {
-              const merged = { ...userObj, ...(result.data || {}) };
-              setUserData(merged);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading user data in drawer:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadUserData();
-  }, []);
 
 
 
@@ -70,11 +37,8 @@ const CustomDrawerContent = (props) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Clear all AsyncStorage data
-              await AsyncStorage.clear();
-              
-              // Refresh user data
-              setUserData(null);
+              // Clear user data using context
+              await clearUserData();
               
               // Navigate to login screen
               navigation.reset({
@@ -107,7 +71,7 @@ const CustomDrawerContent = (props) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Get user ID from stored user data
+              // Get user ID from user data
               const userId = userData?.user_id || userData?.id;
               
               if (!userId) {
@@ -122,11 +86,8 @@ const CustomDrawerContent = (props) => {
               const result = await deleteAccount(userId);
               
               if (result.success) {
-                // Clear all AsyncStorage data
-                await AsyncStorage.clear();
-                
-                // Refresh user data
-                setUserData(null);
+                // Clear user data using context
+                await clearUserData();
                 
                 // Navigate to login screen
                 navigation.reset({
