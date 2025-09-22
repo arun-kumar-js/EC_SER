@@ -114,7 +114,7 @@ const AboutScreen = () => {
               resizeMode="contain"
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>About Us</Text>
+          <Text style={styles.headerTitle}>Who We Are</Text>
           <View style={styles.headerSpacer} />
         </View>
 

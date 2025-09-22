@@ -1,59 +1,54 @@
 import axios from 'axios';
-import { API_ACCESS_KEY, API_BASE_URL } from '../config/config';
-
-// Profile edit endpoint
-const PROFILE_EDIT_ENDPOINT = `${API_BASE_URL}user-registration.php`;
+import { API_ACCESS_KEY, API_BASE_URL, GET_ALL_ADDRESSES } from '../config/config';
 
 export const updateUserProfile = async (profileData) => {
   try {
     const formData = new FormData();
     formData.append('accesskey', API_ACCESS_KEY);
     formData.append('type', 'edit-profile');
-    formData.append('id', profileData.user_id || profileData.id);
+    formData.append('id', profileData.user_id);
     formData.append('fcm_id', profileData.fcm_id || '');
     formData.append('name', profileData.name);
     formData.append('mobile', profileData.mobile);
     formData.append('email', profileData.email);
-    formData.append('street', profileData.address || profileData.street);
+    formData.append('street', profileData.address);
     formData.append('state_id', profileData.state_id || '');
     formData.append('city_id', profileData.city_id || '');
     formData.append('area_id', profileData.area_id || '');
-    formData.append('pincode', profileData.zipCode || profileData.pincode || '');
+    formData.append('pincode', profileData.zipCode || '');
     formData.append('gst_no', profileData.gst_no || '');
     formData.append('landmark', profileData.landmark || '');
     formData.append('latitude', profileData.latitude || '');
     formData.append('longitude', profileData.longitude || '');
-    formData.append('dob', profileData.dateOfBirth || profileData.dob || '');
-    formData.append('district_id', profileData.district_id || '');
+    formData.append('dob', profileData.dateOfBirth || '');
 
     // Log form data
     console.log('=== UPDATE USER PROFILE ===');
     console.log('Base URL:', API_BASE_URL);
-    console.log('Endpoint:', 'user-registration.php');
+    console.log('Endpoint:', 'user_addresses.php');
     console.log('Profile Data:', profileData);
     console.log('Form Data:', {
       accesskey: API_ACCESS_KEY,
       type: 'edit-profile',
-      id: profileData.user_id || profileData.id,
+      id: profileData.user_id,
       fcm_id: profileData.fcm_id || '',
       name: profileData.name,
       mobile: profileData.mobile,
       email: profileData.email,
-      street: profileData.address || profileData.street,
+      street: profileData.address,
       state_id: profileData.state_id || '',
       city_id: profileData.city_id || '',
       area_id: profileData.area_id || '',
-      pincode: profileData.zipCode || profileData.pincode || '',
+      pincode: profileData.zipCode || '',
       gst_no: profileData.gst_no || '',
       landmark: profileData.landmark || '',
       latitude: profileData.latitude || '',
       longitude: profileData.longitude || '',
-      dob: profileData.dateOfBirth || profileData.dob || '',
-      district_id: profileData.district_id || '',
+      dob: profileData.dateOfBirth || '',
     });
 
     const response = await axios.post(
-      PROFILE_EDIT_ENDPOINT,
+      GET_ALL_ADDRESSES,
       formData,
       {
         headers: {
@@ -126,22 +121,21 @@ export const updateUserProfile = async (profileData) => {
 export const testEditProfileAPI = async () => {
   try {
     const testData = {
-      id: '28', // Test user ID matching your example
+      user_id: '1', // Test user ID
       fcm_id: '',
-      name: 'babu',
-      mobile: '9150469997',
-      email: 'av12spider@gmail.com',
-      street: 'no 5th, gothamedu housing board,',
-      state_id: '31',
-      city_id: '2',
-      area_id: '25',
-      pincode: '600015',
+      name: 'Test User',
+      mobile: '1234567890',
+      email: 'test@example.com',
+      address: 'Test Address',
+      state_id: '1',
+      city_id: '1',
+      area_id: '1',
+      zipCode: '12345',
       gst_no: '',
       landmark: '',
-      latitude: '13.0144823',
-      longitude: '80.2227202',
-      dob: '',
-      district_id: '2',
+      latitude: '3.4300291',
+      longitude: '101.55816659999999',
+      dateOfBirth: '01/01/1990',
     };
 
     console.log('=== TESTING EDIT PROFILE API ===');

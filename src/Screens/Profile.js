@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserData, getWalletBalance } from '../Fuctions/UserDataService';
 import { updateUserProfile } from '../Fuctions/UserProfileService';
+import { useUserProfile } from '../Context/UserProfileContext';
 import Toast from 'react-native-toast-message';
 import MapView, { Marker, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
 import { getMapProvider, getMapProviderName } from '../utils/mapUtils';
@@ -33,7 +34,7 @@ import {
 } from '../config/config';
 
 const ProfileScreen = ({ navigation }) => {
-  const [userData, setUserData] = useState(null);
+  const { userData, updateUserData, isLoading: userLoading } = useUserProfile();
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -104,7 +105,7 @@ const ProfileScreen = ({ navigation }) => {
   useEffect(() => {
     loadUserData();
     fetchStates();
-  }, []);
+  }, [userData]);
 
   const fetchStates = async () => {
     try {
@@ -233,203 +234,104 @@ const ProfileScreen = ({ navigation }) => {
       setLoading(true);
       console.log('=== PROFILE USER DATA LOADING ===');
       
-      // Get user data from AsyncStorage first
-      const storedUser = await AsyncStorage.getItem('userData');
-      console.log('Stored user from AsyncStorage:', storedUser);
-      
-      if (storedUser) {
-        const userObj = JSON.parse(storedUser);
-        console.log('Parsed user object:', userObj);
-        const userId = userObj.user_id || userObj.id;
+      // User data is now managed by UserProfileContext
+      if (userData) {
+        console.log('User data from context:', userData);
+        const userId = userData.user_id || userData.id;
         console.log('User ID:', userId);
         
         if (userId) {
-          // Get fresh user data from API using UserDataService
-          console.log('Calling getUserData API with userId:', userId);
-          const userResult = await getUserData(userId);
-          console.log('UserDataService API result:', userResult);
-          
-          if (userResult.success && userResult.data) {
-            console.log('Fresh user data from API:', userResult.data);
-            // Use fresh data from API
-            setUserData(userResult.data);
-            
-            // Update form data with fresh user data from API response
-            const updatedFormData = {
-              name: userResult.data.name || '',
-              email: userResult.data.email || '',
-              mobile: userResult.data.mobile || '',
-              state: userResult.data.state_name || selectedState?.name || '',
-              city: userResult.data.city_name || selectedCity?.name || '',
-              zipCode: userResult.data.pincode || '',
-              address: userResult.data.street || '',
-              location: `${userResult.data.street || ''}, ${userResult.data.city_name || selectedCity?.name || ''}, ${userResult.data.state_name || selectedState?.name || ''}`.replace(/^,\s*|,\s*$/g, ''),
-              dateOfBirth: userResult.data.dob || '',
-              state_id: userResult.data.state_id || selectedState?.id || '',
-              city_id: userResult.data.city_id || selectedCity?.id || '',
-              area_id: userResult.data.area_id || '',
-              gst_no: userResult.data.gst_no || '',
-              landmark: userResult.data.landmark || '',
-            };
+          // Update form data with user data from context
+          const updatedFormData = {
+            name: userData.name || '',
+            email: userData.email || '',
+            mobile: userData.mobile || '',
+            state: userData.state_name || selectedState?.name || '',
+            city: userData.city_name || selectedCity?.name || '',
+            zipCode: userData.pincode || '',
+            address: userData.street || '',
+            location: `${userData.street || ''}, ${userData.city_name || selectedCity?.name || ''}, ${userData.state_name || selectedState?.name || ''}`.replace(/^,\s*|,\s*$/g, ''),
+            dateOfBirth: userData.dob || '',
+            state_id: userData.state_id || selectedState?.id || '',
+            city_id: userData.city_id || selectedCity?.id || '',
+            area_id: userData.area_id || '',
+            gst_no: userData.gst_no || '',
+            landmark: userData.landmark || '',
+          };
 
-            // Set selected state and city if they exist
-            if (userResult.data.state_id) {
-              // If state_name is not available, try to find it from states list
-              const stateName = userResult.data.state_name || 
-                (states.find(s => s.id === userResult.data.state_id)?.name) || 
-                '';
-              setSelectedState({
-                id: userResult.data.state_id,
-                name: stateName
-              });
-            }
-            if (userResult.data.city_id) {
-              // If city_name is not available, try to find it from cities list
-              const cityName = userResult.data.city_name || 
-                (cities.find(c => c.id === userResult.data.city_id)?.name) || 
-                '';
-              setSelectedCity({
-                id: userResult.data.city_id,
-                name: cityName
-              });
-            }
-
-            // Update current location with user's coordinates
-            if (userResult.data.latitude && userResult.data.longitude) {
-              setCurrentLocation({
-                latitude: parseFloat(userResult.data.latitude),
-                longitude: parseFloat(userResult.data.longitude),
-              });
-              console.log('Updated location from user data:', {
-                latitude: parseFloat(userResult.data.latitude),
-                longitude: parseFloat(userResult.data.longitude),
-              });
-            }
-            
-            console.log('=== PROFILE API DATA MAPPING ===');
-            console.log('API Response Data:', userResult.data);
-            console.log('Mapped Form Data:', updatedFormData);
-            console.log('User ID:', userResult.data.user_id);
-            console.log('Name:', userResult.data.name);
-            console.log('Email:', userResult.data.email);
-            console.log('Mobile:', userResult.data.mobile);
-            console.log('Balance:', userResult.data.balance);
-            console.log('City:', userResult.data.city_name);
-            console.log('State:', userResult.data.state_name);
-            console.log('Pincode:', userResult.data.pincode);
-            console.log('Street:', userResult.data.street);
-            console.log('Referral Code:', userResult.data.referral_code);
-            console.log('Status:', userResult.data.status);
-            console.log('Created At:', userResult.data.created_at);
-            console.log('Updated form data:', updatedFormData);
-            console.log('Setting form data with:', updatedFormData);
-            setFormData(prev => {
-              const newData = {
-                ...prev,
-                ...updatedFormData,
-              };
-              console.log('New form data after setState:', newData);
-              return newData;
-            });
-            
-            // Force update display values immediately
-            setDisplayValues({
-              name: updatedFormData.name || '',
-              email: updatedFormData.email || '',
-              mobile: updatedFormData.mobile || '',
-              state: updatedFormData.state || '',
-              city: updatedFormData.city || '',
-              zipCode: updatedFormData.zipCode || '',
-              address: updatedFormData.address || '',
-              dateOfBirth: updatedFormData.dateOfBirth || '',
-              gst_no: updatedFormData.gst_no || '',
-              landmark: updatedFormData.landmark || '',
-            });
-            
-            // Force update to ensure TextInput components re-render
-            setForceUpdate(prev => prev + 1);
-
-            // Get wallet balance
-            console.log('Getting wallet balance for userId:', userId);
-            const balanceResult = await getWalletBalance(userId);
-            console.log('Wallet balance result:', balanceResult);
-            if (balanceResult.success) {
-              setWalletBalance(balanceResult.balance);
-              console.log('Wallet balance set to:', balanceResult.balance);
-            }
-          } else {
-            console.log('UserDataService API failed or no data returned, using stored data');
-            // Fallback to stored data if API fails
-            setUserData(userObj);
-            const fallbackData = {
-              name: userObj.name || userObj.username || '',
-              email: userObj.email || '',
-              mobile: userObj.mobile || userObj.phone || '',
-              state: userObj.state_name || '',
-              city: userObj.city_name || '',
-              zipCode: userObj.pincode || '',
-              address: userObj.street || '',
-              location: userObj.location || '',
-              dateOfBirth: userObj.dob || '',
-            };
-            
-            setFormData(prev => ({
-              ...prev,
-              ...fallbackData,
-            }));
-            
-            // Update display values immediately
-            setDisplayValues({
-              name: fallbackData.name || '',
-              email: fallbackData.email || '',
-              mobile: fallbackData.mobile || '',
-              state: fallbackData.state || '',
-              city: fallbackData.city || '',
-              zipCode: fallbackData.zipCode || '',
-              address: fallbackData.address || '',
-              dateOfBirth: fallbackData.dateOfBirth || '',
-              gst_no: '',
-              landmark: '',
+          // Set selected state and city if they exist
+          if (userData.state_id) {
+            const stateName = userData.state_name || 
+              (states.find(s => s.id === userData.state_id)?.name) || 
+              '';
+            setSelectedState({
+              id: userData.state_id,
+              name: stateName
             });
           }
-        } else {
-          console.log('No user ID found in stored user data, using stored data');
-          // No user ID, use stored data
-          setUserData(userObj);
-          const fallbackData2 = {
-            name: userObj.name || userObj.username || '',
-            email: userObj.email || '',
-            mobile: userObj.mobile || userObj.phone || '',
-            state: userObj.state_name || '',
-            city: userObj.city_name || '',
-            zipCode: userObj.pincode || '',
-            address: userObj.street || '',
-            location: userObj.location || '',
-            dateOfBirth: userObj.dob || '',
-          };
+          if (userData.city_id) {
+            const cityName = userData.city_name || 
+              (cities.find(c => c.id === userData.city_id)?.name) || 
+              '';
+            setSelectedCity({
+              id: userData.city_id,
+              name: cityName
+            });
+          }
+
+          // Update current location with user's coordinates
+          if (userData.latitude && userData.longitude) {
+            setCurrentLocation({
+              latitude: parseFloat(userData.latitude),
+              longitude: parseFloat(userData.longitude),
+            });
+            console.log('Updated location from user data:', {
+              latitude: parseFloat(userData.latitude),
+              longitude: parseFloat(userData.longitude),
+            });
+          }
           
-          setFormData(prev => ({
-            ...prev,
-            ...fallbackData2,
-          }));
+          console.log('=== PROFILE DATA MAPPING ===');
+          console.log('Context User Data:', userData);
+          console.log('Mapped Form Data:', updatedFormData);
           
-          // Update display values immediately
-          setDisplayValues({
-            name: fallbackData2.name || '',
-            email: fallbackData2.email || '',
-            mobile: fallbackData2.mobile || '',
-            state: fallbackData2.state || '',
-            city: fallbackData2.city || '',
-            zipCode: fallbackData2.zipCode || '',
-            address: fallbackData2.address || '',
-            dateOfBirth: fallbackData2.dateOfBirth || '',
-            gst_no: '',
-            landmark: '',
+          setFormData(prev => {
+            const newData = {
+              ...prev,
+              ...updatedFormData,
+            };
+            console.log('New form data after setState:', newData);
+            return newData;
           });
+          
+          // Force update display values immediately
+          setDisplayValues({
+            name: updatedFormData.name || '',
+            email: updatedFormData.email || '',
+            mobile: updatedFormData.mobile || '',
+            state: updatedFormData.state || '',
+            city: updatedFormData.city || '',
+            zipCode: updatedFormData.zipCode || '',
+            address: updatedFormData.address || '',
+            dateOfBirth: updatedFormData.dateOfBirth || '',
+            gst_no: updatedFormData.gst_no || '',
+            landmark: updatedFormData.landmark || '',
+          });
+          
+          // Force update to ensure TextInput components re-render
+          setForceUpdate(prev => prev + 1);
+
+          // Get wallet balance
+          console.log('Getting wallet balance for userId:', userId);
+          const balanceResult = await getWalletBalance(userId);
+          console.log('Wallet balance result:', balanceResult);
+          if (balanceResult.success) {
+            setWalletBalance(balanceResult.balance);
+            console.log('Wallet balance set to:', balanceResult.balance);
+          }
         }
       } else {
-        console.log('No stored user data found in AsyncStorage');
-        setUserData(null);
+        console.log('No user data found in context');
         setWalletBalance(0);
       }
       console.log('=== PROFILE USER DATA LOADING COMPLETE ===');
@@ -494,7 +396,7 @@ const ProfileScreen = ({ navigation }) => {
           position: 'top',
         });
         
-        // Update local user data immediately
+        // Update user data in context
         const updatedUserData = {
           ...userData,
           name: formData.name,
@@ -514,12 +416,9 @@ const ProfileScreen = ({ navigation }) => {
           longitude: currentLocation.longitude.toString(),
         };
         
-        // Update user data state
-        setUserData(updatedUserData);
-        
-        // Update AsyncStorage with the new data
-        await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
-        console.log('Updated user data in AsyncStorage:', updatedUserData);
+        // Update user data in context (this will also update AsyncStorage)
+        await updateUserData(updatedUserData);
+        console.log('Updated user data in context:', updatedUserData);
 
         // Exit edit mode
         setIsEditMode(false);
