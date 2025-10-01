@@ -188,7 +188,12 @@ const SubCategory = ({ route, navigation }) => {
           </View>
           <View style={styles.quantityBox}>
             <Text style={styles.quantity}>
-              Qty: {item?.variants?.[0]?.measurement_unit_name || 'N/A'}
+              {item?.variants?.[0]?.measurement && item?.variants?.[0]?.measurement_unit_name
+                ? `${item.variants[0].measurement} ${item.variants[0].measurement_unit_name}`
+                : 'N/A'}
+              {item?.variants?.[0]?.stock_unit_id && item?.variants?.[0]?.stock_unit_name
+                ? ` `
+                : ''}
             </Text>
           </View>
 

@@ -1928,8 +1928,6 @@ PODS:
     - Yoga
   - react-native-sqlite-storage (6.0.1):
     - React-Core
-  - react-native-tracking-transparency (0.1.2):
-    - React
   - react-native-webview (13.16.0):
     - boost
     - DoubleConversion
@@ -2805,7 +2803,6 @@ DEPENDENCIES:
   - react-native-pusher-push-notifications (from `../node_modules/react-native-pusher-push-notifications`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - react-native-sqlite-storage (from `../node_modules/react-native-sqlite-storage`)
-  - react-native-tracking-transparency (from `../node_modules/react-native-tracking-transparency`)
   - react-native-webview (from `../node_modules/react-native-webview`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
@@ -2942,8 +2939,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-safe-area-context"
   react-native-sqlite-storage:
     :path: "../node_modules/react-native-sqlite-storage"
-  react-native-tracking-transparency:
-    :path: "../node_modules/react-native-tracking-transparency"
   react-native-webview:
     :path: "../node_modules/react-native-webview"
   React-NativeModulesApple:
@@ -3066,7 +3061,6 @@ SPEC CHECKSUMS:
   react-native-pusher-push-notifications: 42b7d1823a68ff902a73c0a25d073cf8a9cd1cc4
   react-native-safe-area-context: c6e2edd1c1da07bdce287fa9d9e60c5f7b514616
   react-native-sqlite-storage: 0c84826214baaa498796c7e46a5ccc9a82e114ed
-  react-native-tracking-transparency: 15eb319f2b982070eb9831582af27d87badfa624
   react-native-webview: 654f794a7686b47491cf43aa67f7f428bea00eed
   React-NativeModulesApple: eff2eba56030eb0d107b1642b8f853bc36a833ac
   React-oscompat: b12c633e9c00f1f99467b1e0e0b8038895dae436

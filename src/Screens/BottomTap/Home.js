@@ -14,6 +14,7 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -258,6 +259,33 @@ const HomeScreen = () => {
     };
     loadData();
   }, []);
+
+  // Function to open WhatsApp chat
+  const openWhatsApp = () => {
+    // WhatsApp number - using the support number or default
+    const whatsappNumber = '+60 132439343'; // Replace with your WhatsApp number
+    const message = 'Hello, I need assistance'; // Optional pre-filled message
+    
+    // Format the number (remove +, spaces, and dashes)
+    const formattedNumber = whatsappNumber.replace(/[^0-9]/g, '');
+    
+    // WhatsApp URL with pre-filled message
+    const url = `whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(message)}`;
+    
+    // Try to open WhatsApp
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          return Linking.openURL(url);
+        } else {
+          console.log('WhatsApp is not installed');
+          // Fallback to web WhatsApp
+          const webUrl = `https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`;
+          Linking.openURL(webUrl);
+        }
+      })
+      .catch((err) => console.error('Error opening WhatsApp:', err));
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa', }} edges={['top', 'left', 'right']}>
@@ -629,6 +657,15 @@ const HomeScreen = () => {
         </View> */}
       </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Floating WhatsApp Button */}
+      <TouchableOpacity 
+        style={styles.whatsappButton}
+        onPress={openWhatsApp}
+        activeOpacity={0.8}
+      >
+        <Icon name="logo-whatsapp" size={30} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -1046,6 +1083,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontFamily: 'Montserrat-Bold',
     textAlign: 'center',
+  },
+  whatsappButton: {
+    position: 'absolute',
+    bottom: hp('3%'),
+    right: wp('5%'),
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#25D366', // WhatsApp green color
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    zIndex: 999,
   },
 });
 

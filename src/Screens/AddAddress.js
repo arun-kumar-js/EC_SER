@@ -649,7 +649,7 @@ const renderModalItem = (item, onSelect) => (
             onPress={() => setStateModalVisible(true)}
           />
           <DropdownSelector
-            label={selectedCity ? selectedCity.name : 'Select City'}
+            label={selectedCity ? selectedCity.name : 'Select District'}
             onPress={() => {
               if (cities.length > 0) {
                 setCityModalVisible(true);

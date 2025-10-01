@@ -21,6 +21,7 @@ import { clearCart, fetchCartItems, getCartSummary } from '../Fuctions/CartServi
 import { createBillPlzBill, createBillPlzBillDirect, testBillPlzAPI } from '../Fuctions/BillPlzService';
 import { getStoreSettings } from '../Fuctions/StoreSettingsService';
 import { getDeliveryMethods } from '../Fuctions/DeliveryMethodService';
+import { getPaymentMethods } from '../Fuctions/PaymentMethodService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 
@@ -34,6 +35,8 @@ const PaymentScreen = ({ route }) => {
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   
   // Get minimum allowed date (today + 3 days)
   const getMinAllowedDate = () => {
@@ -129,6 +132,7 @@ const PaymentScreen = ({ route }) => {
   });
   const [deliveryMethods, setDeliveryMethods] = useState([]);
   const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState([]);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   // Get checkout data from route params
@@ -208,6 +212,20 @@ const PaymentScreen = ({ route }) => {
         }
         console.log('✅ Delivery methods loaded:', methods);
       }
+
+      // Load payment methods
+      const paymentMethodsResult = await getPaymentMethods();
+      if (paymentMethodsResult.success && paymentMethodsResult.data) {
+        setPaymentMethods(paymentMethodsResult.data);
+        console.log('✅ Payment methods loaded:', paymentMethodsResult.data);
+      } else {
+        console.log('❌ Failed to load payment methods, using fallback');
+        // Use fallback payment methods if API fails
+        setPaymentMethods([
+          { id: 'cod', name: 'CASH ON DELIVERY', icon: 'cash-outline' },
+          { id: 'billplz', name: 'BILL PLZ', icon: 'phone-portrait-outline' },
+        ]);
+      }
     } catch (error) {
       console.error('❌ Error loading store settings:', error);
       Toast.show({
@@ -215,6 +233,11 @@ const PaymentScreen = ({ route }) => {
         text1: 'Error',
         text2: 'Failed to load store settings. Using defaults.',
       });
+      // Set fallback payment methods on error
+      setPaymentMethods([
+        { id: 'cod', name: 'CASH ON DELIVERY', icon: 'cash-outline' },
+        { id: 'billplz', name: 'BILL PLZ', icon: 'phone-portrait-outline' },
+      ]);
     } finally {
       setIsLoadingSettings(false);
     }
@@ -390,11 +413,6 @@ const PaymentScreen = ({ route }) => {
     };
     loadData();
   }, []);
-
-  const paymentMethods = [
-    { id: 'cod', name: 'CASH ON DELIVERY', icon: 'cash-outline' },
-    { id: 'billplz', name: 'BILL PLZ', icon: 'phone-portrait-outline' },
-  ];
 
   const handlePaymentMethodSelect = methodId => {
     setSelectedPaymentMethod(methodId);
@@ -983,10 +1001,8 @@ const PaymentScreen = ({ route }) => {
 
   const getCurrentMonthDays = () => {
     const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+    const firstDayOfMonth = new Date(calendarYear, calendarMonth, 1).getDay();
 
     // Calculate minimum allowed date (today + 2 days)
     const minAllowedDate = new Date(today);
@@ -1001,8 +1017,11 @@ const PaymentScreen = ({ route }) => {
 
     // Add days of the month
     for (let i = 1; i <= daysInMonth; i++) {
-      const date = new Date(currentYear, currentMonth, i);
-      const isToday = i === today.getDate();
+      const date = new Date(calendarYear, calendarMonth, i);
+      const isToday = 
+        i === today.getDate() && 
+        calendarMonth === today.getMonth() && 
+        calendarYear === today.getFullYear();
       // Check if date is less than 2 days from today
       const isTooSoon = date < minAllowedDate;
       // Check if this is the minimum allowed date (today + 2)
@@ -1017,6 +1036,40 @@ const PaymentScreen = ({ route }) => {
     }
 
     return days;
+  };
+
+  const handlePreviousMonth = () => {
+    if (calendarMonth === 0) {
+      setCalendarMonth(11);
+      setCalendarYear(calendarYear - 1);
+    } else {
+      setCalendarMonth(calendarMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (calendarMonth === 11) {
+      setCalendarMonth(0);
+      setCalendarYear(calendarYear + 1);
+    } else {
+      setCalendarMonth(calendarMonth + 1);
+    }
+  };
+
+  const getMonthName = () => {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[calendarMonth];
+  };
+
+  const openCalendar = () => {
+    // Reset to current month/year when opening calendar
+    const today = new Date();
+    setCalendarMonth(today.getMonth());
+    setCalendarYear(today.getFullYear());
+    setShowCalendar(true);
   };
 
   return (
@@ -1105,7 +1158,7 @@ const PaymentScreen = ({ route }) => {
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.cardHeader}
-            onPress={() => setShowCalendar(true)}
+            onPress={openCalendar}
             activeOpacity={1}
           >
             <Text style={styles.cardTitle}>Select Delivery Day</Text>
@@ -1255,6 +1308,27 @@ const PaymentScreen = ({ route }) => {
               </TouchableOpacity>
             </View>
 
+            {/* Month/Year Navigation */}
+            <View style={styles.monthNavigation}>
+              <TouchableOpacity 
+                onPress={handlePreviousMonth}
+                style={styles.monthNavButton}
+                activeOpacity={0.7}
+              >
+                <Icon name="chevron-back" size={24} color="#EF3340" />
+              </TouchableOpacity>
+              <Text style={styles.monthYearText}>
+                {getMonthName()} {calendarYear}
+              </Text>
+              <TouchableOpacity 
+                onPress={handleNextMonth}
+                style={styles.monthNavButton}
+                activeOpacity={0.7}
+              >
+                <Icon name="chevron-forward" size={24} color="#EF3340" />
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.calendarBody}>
               <View style={styles.calendarDaysHeader}>
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -1313,9 +1387,7 @@ const PaymentScreen = ({ route }) => {
               <View style={styles.paymentMethodRow}>
                 <Text style={styles.paymentMethodLabel}>Payment Method:</Text>
                 <Text style={styles.paymentMethodValue}>
-                  {selectedPaymentMethod === 'cod'
-                    ? 'CASH ON DELIVERY'
-                    : 'BILL PLZ'}
+                  {paymentMethods.find(method => method.id === selectedPaymentMethod)?.name || selectedPaymentMethod.toUpperCase()}
                 </Text>
               </View>
 
@@ -1648,6 +1720,28 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
+  },
+  monthNavigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 15,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#e0e0e0',
+    marginBottom: 15,
+  },
+  monthNavButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  monthYearText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    fontFamily: 'Montserrat-SemiBold',
   },
   calendarBody: {
     alignItems: 'center',

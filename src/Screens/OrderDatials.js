@@ -369,7 +369,7 @@ const OrderDatials = ({ route, navigation }) => {
           {orderData.delivery_charge && orderData.delivery_charge !== '0.00' && (
             <View style={styles.row}>
               <Text style={styles.label}>Delivery Charge:</Text>
-              <Text style={styles.value}>RM {orderData.delivery_charge}</Text>
+              <Text style={styles.value}>+ RM {orderData.delivery_charge}</Text>
             </View>
           )}
           {orderData.tax_amount && orderData.tax_amount !== '0.00' && (
@@ -390,12 +390,23 @@ const OrderDatials = ({ route, navigation }) => {
               <Text style={styles.value}>- RM {orderData.promo_discount}</Text>
             </View>
           )}
-          {orderData.final_total && (
-            <View style={[styles.row, styles.grandTotal]}>
-              <Text style={styles.grandTotalLabel}>Grand Total:</Text>
-              <Text style={styles.grandTotalValue}>RM {orderData.final_total}</Text>
-            </View>
-          )}
+          {(() => {
+            // Calculate Grand Total: Items Amount + Delivery Charge + Tax - Discount - Promo Discount
+            const itemsAmount = parseFloat(orderData.total || 0);
+            const deliveryCharge = parseFloat(orderData.delivery_charge || 0);
+            const taxAmount = parseFloat(orderData.tax_amount || 0);
+            const discount = parseFloat(orderData.discount_rm || orderData.discount || 0);
+            const promoDiscount = parseFloat(orderData.promo_discount || 0);
+            
+            const calculatedGrandTotal = itemsAmount + deliveryCharge + taxAmount - discount - promoDiscount;
+            
+            return (
+              <View style={[styles.row, styles.grandTotal]}>
+                <Text style={styles.grandTotalLabel}>Grand Total:</Text>
+                <Text style={styles.grandTotalValue}>RM {calculatedGrandTotal.toFixed(2)}</Text>
+              </View>
+            );
+          })()}
         </View>
 
         <View style={styles.divider} />
