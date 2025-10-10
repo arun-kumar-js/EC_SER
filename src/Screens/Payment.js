@@ -968,9 +968,9 @@ const PaymentScreen = ({ route }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
     
-    // Calculate minimum allowed date (today + 2 days)
+    // Calculate minimum allowed date (today + 1 days)
     const minAllowedDate = new Date(today);
-    minAllowedDate.setDate(today.getDate() + 2);
+    minAllowedDate.setDate(today.getDate() + 1);
     
     const selectedDateOnly = new Date(date);
     selectedDateOnly.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
@@ -1004,9 +1004,9 @@ const PaymentScreen = ({ route }) => {
     const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
     const firstDayOfMonth = new Date(calendarYear, calendarMonth, 1).getDay();
 
-    // Calculate minimum allowed date (today + 2 days)
+    // Calculate minimum allowed date (today + 1 days)
     const minAllowedDate = new Date(today);
-    minAllowedDate.setDate(today.getDate() + 2);
+    minAllowedDate.setDate(today.getDate() + 1);
 
     const days = [];
 
@@ -1024,7 +1024,7 @@ const PaymentScreen = ({ route }) => {
         calendarYear === today.getFullYear();
       // Check if date is less than 2 days from today
       const isTooSoon = date < minAllowedDate;
-      // Check if this is the minimum allowed date (today + 2)
+      // Check if this is the minimum allowed date (today + 1)
       const isMinAllowedDate = date.getTime() === minAllowedDate.getTime();
       days.push({
         day: i,

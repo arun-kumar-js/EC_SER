@@ -109,7 +109,7 @@ const ProductDetails = ({ route, navigation }) => {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.shareIconContainer}
                 onPress={handleShare}
               >
@@ -155,7 +155,14 @@ const ProductDetails = ({ route, navigation }) => {
           <View style={styles.cartRow}>
             <View style={[styles.quantityBox, { flex: 2 }]}>
               <Text style={styles.quantity}>
-                Qty: {product?.variants?.[0]?.measurement_unit_name || 'N/A'}
+                {product?.variants?.[0]?.measurement &&
+                product?.variants?.[0]?.measurement_unit_name
+                  ? `${product.variants[0].measurement} ${product.variants[0].measurement_unit_name}`
+                  : 'N/A'}
+                {product?.variants?.[0]?.stock_unit_id &&
+                product?.variants?.[0]?.stock_unit_name
+                  ? ` `
+                  : ''}
               </Text>
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
@@ -202,7 +209,7 @@ const ProductDetails = ({ route, navigation }) => {
             <Ionicons name="heart-outline" size={wp('6%')} color="#F70D24" />
             <Text style={{ color: '#F70D24' }}>Save for later</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.cartButton}
             onPress={() => navigation.navigate('Cart')}
           >
